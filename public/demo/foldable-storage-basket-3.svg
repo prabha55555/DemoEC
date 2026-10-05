@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Foldable Storage Basket">
+<rect width="800" height="1000" fill="#EAF3EF"/>
+<circle cx="400" cy="480" r="380" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#3F6B5B" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#9FB8AD" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#72847d" opacity=".05"/>
+<ellipse cx="400" cy="852" rx="281.25" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(25.0 145.0) rotate(0 375 375) scale(1.875)">
+<path d="M100 116 Q100 62 150 62 L250 62 Q300 62 300 116Z" fill="#d4dfda"/>
+<path d="M130 116 L130 82 M170 116 L170 74 M230 116 L230 74 M270 116 L270 82" stroke="#3F6B5B" stroke-width="7" opacity=".6"/>
+<path d="M70 130 L330 130 L302 350 Q300 368 282 368 L118 368 Q100 368 98 350Z" fill="#9FB8AD"/>
+<path d="M79.04 172 L320.96 172" stroke="#72847d" stroke-opacity=".35" stroke-width="5"/><path d="M83.84 212 L316.16 212" stroke="#72847d" stroke-opacity=".35" stroke-width="5"/><path d="M88.64 252 L311.36 252" stroke="#72847d" stroke-opacity=".35" stroke-width="5"/><path d="M93.44 292 L306.56 292" stroke="#72847d" stroke-opacity=".35" stroke-width="5"/><path d="M98.24 332 L301.76 332" stroke="#72847d" stroke-opacity=".35" stroke-width="5"/>
+<path d="M112 142 L116 360" stroke="#72847d" stroke-opacity=".18" stroke-width="5"/><path d="M148 142 L149 360" stroke="#72847d" stroke-opacity=".18" stroke-width="5"/><path d="M184 142 L182 360" stroke="#72847d" stroke-opacity=".18" stroke-width="5"/><path d="M220 142 L215 360" stroke="#72847d" stroke-opacity=".18" stroke-width="5"/><path d="M256 142 L248 360" stroke="#72847d" stroke-opacity=".18" stroke-width="5"/><path d="M292 142 L281 360" stroke="#72847d" stroke-opacity=".18" stroke-width="5"/>
+<rect x="58" y="112" width="284" height="28" rx="14" fill="#72847d"/>
+<rect x="160" y="168" width="80" height="24" rx="12" fill="#72847d"/></g>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Anti-Slip Yoga Mat 6 mm">
+<rect width="800" height="1000" fill="#EFEAFF"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#FFC93C" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#7C5CFC" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#5942b5" opacity=".05"/>
+<ellipse cx="400" cy="737" rx="225" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(100.0 170.0) rotate(0 300 300) scale(1.5)">
+<rect x="80" y="108" width="240" height="172" fill="#7C5CFC"/>
+<rect x="92" y="128" width="218" height="14" rx="7" fill="#fff" opacity=".25"/>
+<rect x="150" y="104" width="32" height="180" fill="#FFC93C"/><rect x="240" y="104" width="32" height="180" fill="#FFC93C"/>
+<ellipse cx="320" cy="194" rx="40" ry="86" fill="#5942b5"/>
+<ellipse cx="80" cy="194" rx="40" ry="86" fill="#c4b6fe"/>
+<ellipse cx="80" cy="194" rx="28" ry="62" fill="none" stroke="#7C5CFC" stroke-width="8"/>
+<ellipse cx="80" cy="194" rx="15" ry="36" fill="none" stroke="#7C5CFC" stroke-width="7"/>
+<ellipse cx="80" cy="194" rx="5" ry="12" fill="#7C5CFC"/></g>
+</svg>

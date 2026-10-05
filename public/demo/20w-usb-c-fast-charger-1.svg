@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="20W USB-C Fast Charger">
+<rect width="800" height="1000" fill="#CDE8E2"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#0F766E" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#FFFFFF" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#b8b8b8" opacity=".05"/>
+<ellipse cx="400" cy="737" rx="225" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(100.0 170.0) rotate(0 300 300) scale(1.5)">
+<rect x="164" y="26" width="14" height="56" rx="3" fill="#B7C0C4"/><rect x="222" y="26" width="14" height="56" rx="3" fill="#B7C0C4"/>
+<rect x="128" y="78" width="144" height="176" rx="26" fill="#FFFFFF"/>
+<rect x="144" y="96" width="14" height="130" rx="7" fill="#fff" opacity=".45"/>
+<path d="M208 118 L172 192 L200 192 L190 240 L232 164 L204 164Z" fill="#0F766E"/>
+<rect x="128" y="226" width="144" height="12" fill="#b8b8b8" opacity=".3"/>
+<path d="M200 254 Q200 306 146 318 Q86 330 98 356 Q110 380 232 372" stroke="#FFFFFF" stroke-width="13" fill="none" stroke-linecap="round"/>
+<rect x="224" y="360" width="46" height="24" rx="6" fill="#b8b8b8"/></g>
+</svg>

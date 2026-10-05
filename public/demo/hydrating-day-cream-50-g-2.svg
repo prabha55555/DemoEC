@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Hydrating Day Cream 50 g">
+<rect width="800" height="1000" fill="#FFF1F3"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="140" cy="800" r="90" fill="#E1566B" opacity=".16"/>
+<circle cx="690" cy="190" r="46" fill="#FBE3E6" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#b5a3a6" opacity=".05"/>
+<ellipse cx="400" cy="726" rx="207.00000000000003" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(124.0 204.0) rotate(-7 276 276) scale(1.3800000000000001)">
+<rect x="96" y="124" width="208" height="66" rx="14" fill="#E1566B"/>
+<rect x="110" y="140" width="180" height="6" rx="3" fill="#fff" opacity=".35"/>
+<path d="M108 190 L292 190 L298 330 Q298 368 258 368 L142 368 Q102 368 102 330Z" fill="#FBE3E6"/>
+<rect x="102" y="236" width="196" height="84" fill="#fff" opacity=".9"/>
+<circle cx="146" cy="278" r="20" fill="#E1566B"/><path d="M146 292 L146 264 M138 272 L146 264 L154 272" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/>
+<rect x="178" y="262" width="94" height="10" rx="5" fill="#FBE3E6"/><rect x="178" y="284" width="70" height="6" rx="3" fill="#b5a3a6" opacity=".3"/>
+<rect x="118" y="206" width="12" height="130" rx="6" fill="#fff" opacity=".28"/></g>
+</svg>

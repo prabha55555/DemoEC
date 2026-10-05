@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Velvet Cushion Cover (Set of 2)">
+<rect width="800" height="1000" fill="#FFE8EC"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="140" cy="800" r="90" fill="#FFE3A1" opacity=".16"/>
+<circle cx="690" cy="190" r="46" fill="#B4234B" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#821936" opacity=".05"/>
+<ellipse cx="400" cy="726" rx="207.00000000000003" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(124.0 204.0) rotate(-7 276 276) scale(1.3800000000000001)">
+<g transform="rotate(-9 200 200)"><rect x="82" y="70" width="216" height="216" rx="24" fill="#821936"/>
+<rect x="96" y="84" width="188" height="188" rx="16" fill="none" stroke="#dd9cae" stroke-width="3" stroke-dasharray="7 6" opacity=".7"/></g>
+<rect x="118" y="130" width="214" height="214" rx="28" fill="#B4234B"/>
+<path d="M225 140 L322 237 L225 334 L128 237Z" fill="none" stroke="#FFE3A1" stroke-width="6"/>
+<circle cx="225" cy="237" r="40" fill="#FFE3A1"/><circle cx="225" cy="237" r="20" fill="#dd9cae"/>
+<rect x="132" y="144" width="186" height="186" rx="20" fill="none" stroke="#dd9cae" stroke-width="3" stroke-dasharray="7 6"/></g>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Over-Ear Wireless Headphones">
+<rect width="800" height="1000" fill="#E4F6F3"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#FFC93C" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#0F766E" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#0b554f" opacity=".05"/>
+<ellipse cx="400" cy="737" rx="225" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(100.0 170.0) rotate(0 300 300) scale(1.5)">
+<path d="M84 240 Q84 40 200 40 Q316 40 316 240" fill="none" stroke="#0b554f" stroke-width="26" stroke-linecap="round"/>
+<path d="M98 224 Q100 62 200 62" fill="none" stroke="#fff" stroke-opacity=".2" stroke-width="6" stroke-linecap="round"/>
+<rect x="46" y="186" width="82" height="152" rx="38" fill="#0F766E"/><rect x="272" y="186" width="82" height="152" rx="38" fill="#0F766E"/>
+<rect x="108" y="204" width="34" height="116" rx="17" fill="#0b554f"/><rect x="258" y="204" width="34" height="116" rx="17" fill="#0b554f"/>
+<circle cx="84" cy="262" r="18" fill="#FFC93C"/><circle cx="316" cy="262" r="18" fill="#FFC93C"/></g>
+</svg>

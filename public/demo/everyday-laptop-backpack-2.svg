@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Everyday Laptop Backpack">
+<rect width="800" height="1000" fill="#E4F6F3"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="140" cy="800" r="90" fill="#FFC93C" opacity=".16"/>
+<circle cx="690" cy="190" r="46" fill="#0F766E" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#0b554f" opacity=".05"/>
+<ellipse cx="400" cy="726" rx="207.00000000000003" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(124.0 204.0) rotate(-7 276 276) scale(1.3800000000000001)">
+<path d="M165 66 Q165 20 200 20 Q235 20 235 66" fill="none" stroke="#0b554f" stroke-width="13" stroke-linecap="round"/>
+<rect x="86" y="150" width="16" height="176" rx="8" fill="#0b554f"/><rect x="298" y="150" width="16" height="176" rx="8" fill="#0b554f"/>
+<path d="M108 124 Q108 62 200 62 Q292 62 292 124 L302 340 Q302 372 270 372 L130 372 Q98 372 98 340Z" fill="#0F766E"/>
+<path d="M116 148 Q200 112 284 148" stroke="#0b554f" stroke-width="6" fill="none"/><circle cx="200" cy="130" r="9" fill="#FFC93C"/>
+<path d="M124 232 L276 232 L284 346 Q284 360 270 360 L130 360 Q116 360 116 346Z" fill="#0b554f" opacity=".55"/>
+<path d="M124 232 Q200 256 276 232" stroke="#FFC93C" stroke-width="6" fill="none"/><circle cx="200" cy="262" r="9" fill="#FFC93C"/>
+<rect x="116" y="170" width="10" height="46" rx="5" fill="#fff" opacity=".22"/></g>
+</svg>

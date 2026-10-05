@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Matte Liquid Lipstick">
+<rect width="800" height="1000" fill="#FFE8EC"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#C9A23F" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#C0264B" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#8a1b36" opacity=".05"/>
+<ellipse cx="400" cy="711" rx="202.5" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(130.0 200.0) rotate(0 270 270) scale(1.35)">
+<path d="M170 140 L170 70 Q170 38 206 28 L232 58 L232 140Z" fill="#C0264B"/>
+<path d="M206 28 L232 58 L232 82 Q200 70 206 28Z" fill="#fff" opacity=".22"/>
+<rect x="162" y="140" width="76" height="38" fill="#C9A23F"/>
+<rect x="154" y="178" width="92" height="66" rx="4" fill="#8a1b36"/>
+<rect x="148" y="244" width="104" height="122" rx="8" fill="#C9A23F"/>
+<rect x="148" y="286" width="104" height="9" fill="#8a1b36" opacity=".5"/><rect x="164" y="254" width="12" height="104" rx="6" fill="#fff" opacity=".35"/></g>
+</svg>

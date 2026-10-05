@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Floral Midi Dress">
+<rect width="800" height="1000" fill="#E6F5EF"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="140" cy="800" r="90" fill="#FFF3C4" opacity=".16"/>
+<circle cx="690" cy="190" r="46" fill="#2F7D6B" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#225a4d" opacity=".05"/>
+<ellipse cx="400" cy="726" rx="207.00000000000003" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(124.0 204.0) rotate(-7 276 276) scale(1.3800000000000001)">
+<path d="M150 40 L158 112" stroke="#2F7D6B" stroke-width="11" stroke-linecap="round"/><path d="M250 40 L242 112" stroke="#2F7D6B" stroke-width="11" stroke-linecap="round"/>
+<path d="M150 100 Q200 128 250 100 L262 190 L138 190Z" fill="#2F7D6B"/>
+<path d="M138 190 L262 190 Q320 300 348 368 Q200 392 52 368 Q80 300 138 190Z" fill="#2F7D6B"/>
+<path d="M138 190 L262 190 L270 215 L130 215Z" fill="#225a4d" opacity=".18"/>
+<rect x="138" y="184" width="124" height="14" fill="#FFF3C4"/>
+<path d="M250 100 L262 190 L238 190Z" fill="#225a4d" opacity=".12"/>
+<circle cx="110" cy="300" r="9" fill="#a1c5bc" opacity=".85"/><circle cx="110" cy="300" r="3.5" fill="#FFF3C4"/><circle cx="160" cy="270" r="9" fill="#a1c5bc" opacity=".85"/><circle cx="160" cy="270" r="3.5" fill="#FFF3C4"/><circle cx="220" cy="300" r="9" fill="#a1c5bc" opacity=".85"/><circle cx="220" cy="300" r="3.5" fill="#FFF3C4"/><circle cx="270" cy="262" r="9" fill="#a1c5bc" opacity=".85"/><circle cx="270" cy="262" r="3.5" fill="#FFF3C4"/><circle cx="310" cy="330" r="9" fill="#a1c5bc" opacity=".85"/><circle cx="310" cy="330" r="3.5" fill="#FFF3C4"/><circle cx="180" cy="340" r="9" fill="#a1c5bc" opacity=".85"/><circle cx="180" cy="340" r="3.5" fill="#FFF3C4"/><circle cx="90" cy="345" r="9" fill="#a1c5bc" opacity=".85"/><circle cx="90" cy="345" r="3.5" fill="#FFF3C4"/><circle cx="245" cy="345" r="9" fill="#a1c5bc" opacity=".85"/><circle cx="245" cy="345" r="3.5" fill="#FFF3C4"/><circle cx="200" cy="232" r="9" fill="#a1c5bc" opacity=".85"/><circle cx="200" cy="232" r="3.5" fill="#FFF3C4"/></g>
+</svg>

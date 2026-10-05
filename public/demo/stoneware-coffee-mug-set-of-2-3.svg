@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Stoneware Coffee Mug (Set of 2)">
+<rect width="800" height="1000" fill="#FFF0F2"/>
+<circle cx="400" cy="480" r="380" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#FFFFFF" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#E1566B" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#a23e4d" opacity=".05"/>
+<ellipse cx="400" cy="852" rx="281.25" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(25.0 145.0) rotate(0 375 375) scale(1.875)">
+<path d="M286 160 Q352 158 346 226 Q340 292 278 292" fill="none" stroke="#E1566B" stroke-width="26" stroke-linecap="round"/>
+<path d="M110 120 L290 120 L280 330 Q278 356 252 356 L148 356 Q122 356 120 330Z" fill="#E1566B"/>
+<ellipse cx="200" cy="120" rx="90" ry="16" fill="#a23e4d"/><ellipse cx="200" cy="120" rx="77" ry="10" fill="#5A3A28"/>
+<rect x="117" y="214" width="166" height="26" fill="#FFFFFF"/>
+<rect x="132" y="150" width="12" height="150" rx="6" fill="#fff" opacity=".28"/>
+<path d="M172 94 Q160 72 174 52 Q188 30 174 12" stroke="#a23e4d" stroke-opacity=".35" stroke-width="6" fill="none" stroke-linecap="round"/>
+<path d="M226 94 Q214 72 228 52 Q242 30 228 12" stroke="#a23e4d" stroke-opacity=".35" stroke-width="6" fill="none" stroke-linecap="round"/></g>
+</svg>

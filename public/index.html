@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Brightlight Solutions — online shopping for fashion, home, beauty, electronics and more. Free delivery on every order." />
+    <meta name="theme-color" content="#1F2A28" />
+
+    <!-- Google Analytics (GA4) -- REACT_APP_GA_MEASUREMENT_ID is CRA-interpolated at build time (see
+         InterpolateHtmlPlugin); it's a public measurement ID, not a secret, same as every GA4 site's own
+         page source. Wrapped in a runtime check so an unset/empty ID (local dev, a preview build without
+         the var configured) never fires a broken request instead of silently doing nothing. -->
+    <script>
+      (function () {
+        var GA_ID = '%REACT_APP_GA_MEASUREMENT_ID%';
+        if (!GA_ID || GA_ID.indexOf('%') === 0) return;
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+        document.head.appendChild(s);
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { window.dataLayer.push(arguments); };
+        window.gtag('js', new Date());
+        window.gtag('config', GA_ID);
+      })();
+    </script>
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Brightlight Solutions" />
+    <meta property="og:description" content="Shop fashion, home, beauty, electronics and more with free delivery on every order." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.brightlightsolutions.in" />
+    <meta property="og:image" content="https://www.brightlightsolutions.in/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Brightlight Solutions" />
+    <meta name="twitter:description" content="Shop fashion, home, beauty, electronics and more with free delivery on every order." />
+    <meta name="twitter:image" content="https://www.brightlightsolutions.in/og-image.png" />
+
+    <title>Brightlight Solutions — Online Shopping</title>
+
+    <!-- Favicon set generated from the Brightlight mark. favicon.ico covers the fallback every browser
+         (and Google's own favicon fetcher) tries at the domain root regardless of these <link> tags. -->
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <!-- Fonts loaded here (not via CSS @import) so the browser can start fetching
+         them immediately, in parallel with the rest of the page. DM Sans = UI/body (Inter is the fallback),
+         Montserrat = the logo wordmark only. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Inter:wght@400;500;600;700&family=Montserrat:wght@700;800&display=swap" />
+  </head>
+  <body>
+    <noscript>
+      <div style="font-family:Arial,sans-serif;text-align:center;padding:60px 24px;color:#1F2A28">
+        You need to enable JavaScript to use Brightlight Solutions.
+      </div>
+    </noscript>
+    <div id="root"></div>
+    <!-- Pure vanilla JS, independent of React entirely -- if the app's own script
+         failed to load or run at all (a dropped request on a flaky mobile
+         connection, no retry built into a plain <script> tag), React never gets a
+         chance to render ANYTHING, including its own error handling. This is the
+         one safety net that can still catch that case: if #root is still
+         completely empty after a generous wait, offer a one-tap reload instead of
+         leaving a silent blank page with no way forward but guessing to refresh. -->
+    <script>
+      setTimeout(function () {
+        var root = document.getElementById('root');
+        if (root && !root.hasChildNodes()) {
+          document.body.insertAdjacentHTML('beforeend',
+            '<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;background:#F1F8F6;font-family:Arial,sans-serif;text-align:center;padding:24px;z-index:99999;">' +
+            '<div style="font-size:18px;color:#1F2A28;max-width:320px;">This is taking longer than expected to load.</div>' +
+            '<button onclick="window.location.reload()" style="font-family:Arial,sans-serif;font-weight:600;font-size:14px;padding:12px 30px;background:#0F766E;color:#ffffff;border:none;border-radius:8px;cursor:pointer;">Reload</button>' +
+            '</div>'
+          );
+        }
+      }, 10000);
+    </script>
+  </body>
+</html>

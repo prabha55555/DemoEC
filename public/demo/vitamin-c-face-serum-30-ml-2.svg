@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Vitamin C Face Serum 30 ml">
+<rect width="800" height="1000" fill="#E4F6F3"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="140" cy="800" r="90" fill="#C9A23F" opacity=".16"/>
+<circle cx="690" cy="190" r="46" fill="#0F766E" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#0b554f" opacity=".05"/>
+<ellipse cx="400" cy="726" rx="207.00000000000003" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(124.0 204.0) rotate(-7 276 276) scale(1.3800000000000001)">
+<rect x="174" y="10" width="52" height="80" rx="24" fill="#0b554f"/>
+<rect x="166" y="86" width="68" height="36" rx="7" fill="#C9A23F"/>
+<rect x="122" y="118" width="156" height="252" rx="28" fill="#0F766E"/>
+<rect x="138" y="142" width="14" height="200" rx="7" fill="#fff" opacity=".38"/>
+<rect x="148" y="196" width="106" height="120" rx="8" fill="#fff"/>
+<rect x="162" y="214" width="78" height="10" rx="5" fill="#0F766E"/>
+<rect x="162" y="238" width="58" height="6" rx="3" fill="#0b554f" opacity=".3"/><rect x="162" y="254" width="68" height="6" rx="3" fill="#0b554f" opacity=".3"/>
+<circle cx="177" cy="290" r="10" fill="#C9A23F"/><rect x="195" y="284" width="44" height="6" rx="3" fill="#0b554f" opacity=".3"/></g>
+</svg>

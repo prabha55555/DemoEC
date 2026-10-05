@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Kids Zip Hoodie">
+<rect width="800" height="1000" fill="#FFF4D6"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#0F766E" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#F59E0B" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#b07208" opacity=".05"/>
+<ellipse cx="400" cy="737" rx="225" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(100.0 170.0) rotate(0 300 300) scale(1.5)">
+<path d="M140 84 L70 120 L34 300 L92 312 L104 200 L104 350 L296 350 L296 200 L308 312 L366 300 L330 120 L260 84 Q200 150 140 84Z" fill="#F59E0B"/>
+<path d="M70 120 L34 300 L92 312 L104 200 L104 140Z" fill="#b07208" opacity=".13"/>
+<path d="M330 120 L366 300 L308 312 L296 200 L296 140Z" fill="#b07208" opacity=".13"/>
+<path d="M126 100 Q120 14 200 14 Q280 14 274 100 Q200 172 126 100Z" fill="#F59E0B"/>
+<path d="M150 96 Q148 40 200 40 Q252 40 250 96 Q200 146 150 96Z" fill="#b07208"/>
+<path d="M180 140 L176 214" stroke="#fbd391" stroke-width="7" stroke-linecap="round"/><path d="M220 140 L224 214" stroke="#fbd391" stroke-width="7" stroke-linecap="round"/>
+<path d="M130 268 L270 268 L292 336 L108 336Z" fill="#b07208" opacity=".18"/>
+<rect x="104" y="336" width="192" height="14" fill="#0F766E"/></g>
+</svg>

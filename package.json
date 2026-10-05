@@ -1,0 +1,33 @@
+{
+  "name": "brightlight-solutions-store",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.1",
+    "@vercel/analytics": "^2.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.1",
+    "react-router-dom": "^6.22.0",
+    "react-scripts": "5.0.1",
+    "sharp": "^0.34.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "prebuild": "node scripts/generate-sitemap.js",
+    "build": "react-scripts build",
+    "test": "react-scripts test"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

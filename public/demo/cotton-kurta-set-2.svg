@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Cotton Kurta Set">
+<rect width="800" height="1000" fill="#FFF1E0"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="140" cy="800" r="90" fill="#FFE0A3" opacity=".16"/>
+<circle cx="690" cy="190" r="46" fill="#C2410C" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#8c2f09" opacity=".05"/>
+<ellipse cx="400" cy="726" rx="207.00000000000003" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(124.0 204.0) rotate(-7 276 276) scale(1.3800000000000001)">
+<path d="M138 46 L84 78 L48 238 L100 248 L112 150 L108 366 L180 366 L200 340 L220 366 L292 366 L288 150 L300 248 L352 238 L316 78 L262 46 Q200 104 138 46Z" fill="#C2410C"/>
+<path d="M84 78 L48 238 L100 248 L112 150 L112 100Z" fill="#8c2f09" opacity=".12"/>
+<path d="M316 78 L352 238 L300 248 L288 150 L288 100Z" fill="#8c2f09" opacity=".12"/>
+<path d="M138 46 Q200 104 262 46" stroke="#FFE0A3" stroke-width="9" fill="none"/>
+<path d="M200 98 L200 196" stroke="#FFE0A3" stroke-width="10"/>
+<circle cx="200" cy="118" r="5" fill="#e4aa92"/><circle cx="200" cy="146" r="5" fill="#e4aa92"/><circle cx="200" cy="174" r="5" fill="#e4aa92"/>
+<path d="M48 238 L100 248" stroke="#FFE0A3" stroke-width="10"/><path d="M352 238 L300 248" stroke="#FFE0A3" stroke-width="10"/>
+<rect x="108" y="300" width="180" height="14" fill="#FFE0A3"/>
+<circle cx="132" cy="272" r="5" fill="#e4aa92" opacity=".85"/><circle cx="159" cy="272" r="5" fill="#e4aa92" opacity=".85"/><circle cx="186" cy="272" r="5" fill="#e4aa92" opacity=".85"/><circle cx="213" cy="272" r="5" fill="#e4aa92" opacity=".85"/><circle cx="240" cy="272" r="5" fill="#e4aa92" opacity=".85"/><circle cx="267" cy="272" r="5" fill="#e4aa92" opacity=".85"/></g>
+</svg>

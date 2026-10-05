@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Running Sneakers">
+<rect width="800" height="1000" fill="#E4F6F3"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#FFC93C" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#0F766E" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#0b554f" opacity=".05"/>
+<ellipse cx="400" cy="728" rx="217.5" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(110.0 180.0) rotate(0 290 290) scale(1.45)">
+<path d="M32 300 Q32 296 38 296 L372 296 Q392 300 388 322 Q384 346 360 346 L56 346 Q32 346 32 322Z" fill="#93c1be"/>
+<path d="M32 322 L388 322" stroke="#0b554f" stroke-opacity=".25" stroke-width="4"/>
+<path d="M44 298 L48 172 Q50 152 72 150 L132 146 Q152 144 162 160 L186 196 Q214 214 250 224 Q340 238 378 276 Q392 290 384 298Z" fill="#0F766E"/>
+<path d="M44 298 L48 210 L98 210 L102 298Z" fill="#0b554f" opacity=".3"/>
+<path d="M300 240 Q350 252 378 276 Q392 290 384 298 L300 298Z" fill="#0b554f" opacity=".22"/>
+<path d="M134 148 Q130 100 160 96 Q178 96 176 124 L168 164Z" fill="#0b554f"/>
+<path d="M112 290 Q180 218 282 266" fill="none" stroke="#FFC93C" stroke-width="16" stroke-linecap="round"/>
+<path d="M184 188 L212 172 M202 204 L232 188 M222 214 L252 200" stroke="#fff" stroke-width="7" stroke-linecap="round"/></g>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Insulated Steel Bottle 750 ml">
+<rect width="800" height="1000" fill="#E3EEFB"/>
+<circle cx="400" cy="480" r="380" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#FFC93C" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#1D4E89" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#153863" opacity=".05"/>
+<ellipse cx="400" cy="852" rx="281.25" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(25.0 145.0) rotate(0 375 375) scale(1.875)">
+<rect x="158" y="24" width="84" height="48" rx="12" fill="#FFC93C"/><path d="M200 24 Q200 4 230 4" stroke="#FFC93C" stroke-width="8" fill="none" stroke-linecap="round"/>
+<rect x="170" y="72" width="60" height="28" fill="#153863"/>
+<path d="M135 132 Q135 100 170 100 L230 100 Q265 100 265 132 L265 352 Q265 370 247 370 L153 370 Q135 370 135 352Z" fill="#1D4E89"/>
+<rect x="135" y="214" width="130" height="64" fill="#FFC93C"/><rect x="152" y="236" width="96" height="9" rx="4" fill="#99afca"/><rect x="170" y="254" width="60" height="7" rx="3" fill="#99afca" opacity=".7"/>
+<rect x="150" y="120" width="14" height="236" rx="7" fill="#fff" opacity=".32"/></g>
+</svg>

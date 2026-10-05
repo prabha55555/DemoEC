@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Fitness Smart Watch">
+<rect width="800" height="1000" fill="#E4F6F3"/>
+<circle cx="400" cy="480" r="380" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#C9A23F" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#0F766E" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#0b554f" opacity=".05"/>
+<ellipse cx="400" cy="852" rx="281.25" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(25.0 145.0) rotate(0 375 375) scale(1.875)">
+<path d="M146 124 L158 16 L242 16 L254 124Z" fill="#0F766E"/><path d="M146 276 L158 384 L242 384 L254 276Z" fill="#0F766E"/>
+<circle cx="200" cy="318" r="5" fill="#0b554f" opacity=".6"/><circle cx="200" cy="340" r="5" fill="#0b554f" opacity=".6"/><circle cx="200" cy="362" r="5" fill="#0b554f" opacity=".6"/>
+<rect x="288" y="168" width="14" height="40" rx="6" fill="#C9A23F"/>
+<rect x="106" y="106" width="188" height="188" rx="48" fill="#C9A23F"/>
+<rect x="122" y="122" width="156" height="156" rx="36" fill="#0F1F1D"/>
+<circle cx="200" cy="200" r="48" fill="none" stroke="#1B3A36" stroke-width="12"/>
+<circle cx="200" cy="200" r="48" fill="none" stroke="#2DD4BF" stroke-width="12" stroke-linecap="round" stroke-dasharray="210 300" transform="rotate(-90 200 200)"/>
+<rect x="178" y="194" width="44" height="9" rx="4" fill="#fff"/><rect x="186" y="210" width="28" height="6" rx="3" fill="#fff" opacity=".6"/></g>
+</svg>

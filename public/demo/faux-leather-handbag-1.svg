@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Faux Leather Handbag">
+<rect width="800" height="1000" fill="#FFEDE0"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#C9A23F" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#B5532A" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#823c1e" opacity=".05"/>
+<ellipse cx="400" cy="737" rx="225" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(100.0 170.0) rotate(0 300 300) scale(1.5)">
+<path d="M128 142 Q128 38 200 38 Q272 38 272 142" fill="none" stroke="#823c1e" stroke-width="15" stroke-linecap="round"/>
+<path d="M60 142 L340 142 L366 330 Q370 366 334 366 L66 366 Q30 366 34 330Z" fill="#B5532A"/>
+<path d="M60 142 L340 142 L330 218 Q200 268 70 218Z" fill="#823c1e" opacity=".35"/>
+<path d="M76 296 L324 296" stroke="#deb29f" stroke-width="3" stroke-dasharray="8 7" fill="none"/>
+<circle cx="200" cy="238" r="18" fill="#C9A23F"/><circle cx="200" cy="238" r="7" fill="#823c1e"/>
+<rect x="64" y="160" width="12" height="130" rx="6" fill="#fff" opacity=".18"/></g>
+</svg>

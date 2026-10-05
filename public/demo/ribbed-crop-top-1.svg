@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Ribbed Crop Top">
+<rect width="800" height="1000" fill="#EFEAFF"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#FFC93C" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#7C5CFC" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#5942b5" opacity=".05"/>
+<ellipse cx="400" cy="737" rx="225" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(100.0 170.0) rotate(0 300 300) scale(1.5)">
+<path d="M130 62 L58 100 L28 186 L86 208 L102 174 L102 352 L298 352 L298 174 L314 208 L372 186 L342 100 L270 62 Q200 118 130 62Z" fill="#7C5CFC"/>
+<path d="M58 100 L28 186 L86 208 L102 174 L102 118Z" fill="#5942b5" opacity=".13"/>
+<path d="M342 100 L372 186 L314 208 L298 174 L298 118Z" fill="#5942b5" opacity=".13"/>
+<path d="M130 62 Q200 118 270 62 L256 50 Q200 96 144 50Z" fill="#5942b5"/>
+
+
+
+<rect x="112" y="130" width="3" height="222" fill="#5942b5" opacity=".22"/><rect x="133" y="130" width="3" height="222" fill="#5942b5" opacity=".22"/><rect x="154" y="130" width="3" height="222" fill="#5942b5" opacity=".22"/><rect x="175" y="130" width="3" height="222" fill="#5942b5" opacity=".22"/><rect x="196" y="130" width="3" height="222" fill="#5942b5" opacity=".22"/><rect x="217" y="130" width="3" height="222" fill="#5942b5" opacity=".22"/><rect x="238" y="130" width="3" height="222" fill="#5942b5" opacity=".22"/><rect x="259" y="130" width="3" height="222" fill="#5942b5" opacity=".22"/><rect x="280" y="130" width="3" height="222" fill="#5942b5" opacity=".22"/></g>
+</svg>

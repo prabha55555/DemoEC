@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Argan Hair Oil 100 ml">
+<rect width="800" height="1000" fill="#E4F6F3"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="140" cy="800" r="90" fill="#FFC93C" opacity=".16"/>
+<circle cx="690" cy="190" r="46" fill="#0F766E" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#0b554f" opacity=".05"/>
+<ellipse cx="400" cy="726" rx="207.00000000000003" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(124.0 204.0) rotate(-7 276 276) scale(1.3800000000000001)">
+<path d="M186 30 L270 30 L270 48 L204 48 L204 82 L186 82Z" fill="#0b554f"/>
+<rect x="172" y="80" width="56" height="30" rx="6" fill="#FFC93C"/>
+<rect x="126" y="108" width="148" height="262" rx="30" fill="#0F766E"/>
+<rect x="142" y="130" width="13" height="216" rx="6" fill="#fff" opacity=".35"/>
+<rect x="146" y="180" width="108" height="140" rx="10" fill="#fff"/>
+<path d="M200 270 Q166 258 172 222 Q210 228 200 270Z" fill="#0F766E"/><path d="M200 270 Q234 258 228 222 Q190 228 200 270Z" fill="#0b554f"/>
+<rect x="164" y="286" width="72" height="8" rx="4" fill="#0b554f" opacity=".35"/><rect x="176" y="302" width="48" height="6" rx="3" fill="#0b554f" opacity=".25"/></g>
+</svg>

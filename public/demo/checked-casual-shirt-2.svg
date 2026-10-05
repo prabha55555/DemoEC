@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Checked Casual Shirt">
+<rect width="800" height="1000" fill="#E6F5EF"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="140" cy="800" r="90" fill="#14463B" opacity=".16"/>
+<circle cx="690" cy="190" r="46" fill="#2F7D6B" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#225a4d" opacity=".05"/>
+<ellipse cx="400" cy="726" rx="207.00000000000003" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(124.0 204.0) rotate(-7 276 276) scale(1.3800000000000001)">
+<path d="M128 66 L72 98 L38 300 L92 312 L104 196 L104 356 L296 356 L296 196 L308 312 L362 300 L328 98 L272 66 L200 118Z" fill="#2F7D6B"/>
+<path d="M72 98 L38 300 L92 312 L104 196 L104 120Z" fill="#225a4d" opacity=".12"/>
+<path d="M328 98 L362 300 L308 312 L296 196 L296 120Z" fill="#225a4d" opacity=".12"/>
+<rect x="126" y="150" width="8" height="206" fill="#14463B" opacity=".3"/><rect x="156" y="150" width="8" height="206" fill="#14463B" opacity=".3"/><rect x="186" y="150" width="8" height="206" fill="#14463B" opacity=".3"/><rect x="216" y="150" width="8" height="206" fill="#14463B" opacity=".3"/><rect x="246" y="150" width="8" height="206" fill="#14463B" opacity=".3"/><rect x="276" y="150" width="8" height="206" fill="#14463B" opacity=".3"/><rect x="104" y="160" width="192" height="8" fill="#14463B" opacity=".3"/><rect x="104" y="190" width="192" height="8" fill="#14463B" opacity=".3"/><rect x="104" y="220" width="192" height="8" fill="#14463B" opacity=".3"/><rect x="104" y="250" width="192" height="8" fill="#14463B" opacity=".3"/><rect x="104" y="280" width="192" height="8" fill="#14463B" opacity=".3"/><rect x="104" y="310" width="192" height="8" fill="#14463B" opacity=".3"/><rect x="104" y="340" width="192" height="8" fill="#14463B" opacity=".3"/>
+<path d="M128 66 L200 140 L166 150 L116 84Z" fill="#a1c5bc"/><path d="M272 66 L200 140 L234 150 L284 84Z" fill="#a1c5bc"/>
+<rect x="194" y="138" width="12" height="218" fill="#225a4d" opacity=".2"/>
+<circle cx="200" cy="170" r="5" fill="#a1c5bc"/><circle cx="200" cy="215" r="5" fill="#a1c5bc"/><circle cx="200" cy="260" r="5" fill="#a1c5bc"/><circle cx="200" cy="305" r="5" fill="#a1c5bc"/>
+<rect x="232" y="196" width="42" height="48" rx="3" fill="none" stroke="#225a4d" stroke-opacity=".4" stroke-width="3"/></g>
+</svg>

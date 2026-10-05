@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Classic Polo T-Shirt">
+<rect width="800" height="1000" fill="#E4F6F3"/>
+<circle cx="400" cy="480" r="380" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#FFFFFF" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#0F766E" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#0b554f" opacity=".05"/>
+<ellipse cx="400" cy="852" rx="281.25" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(25.0 145.0) rotate(0 375 375) scale(1.875)">
+<path d="M130 62 L58 100 L28 186 L86 208 L102 174 L102 352 L298 352 L298 174 L314 208 L372 186 L342 100 L270 62 Q200 118 130 62Z" fill="#0F766E"/>
+<path d="M58 100 L28 186 L86 208 L102 174 L102 118Z" fill="#0b554f" opacity=".13"/>
+<path d="M342 100 L372 186 L314 208 L298 174 L298 118Z" fill="#0b554f" opacity=".13"/>
+<path d="M130 62 Q200 118 270 62 L256 50 Q200 96 144 50Z" fill="#0b554f"/>
+
+
+
+
+<path d="M130 62 L172 54 L204 116 L150 104Z" fill="#93c1be"/><path d="M270 62 L228 54 L196 116 L250 104Z" fill="#93c1be"/>
+<rect x="190" y="112" width="20" height="74" rx="3" fill="#0b554f" opacity=".35"/>
+<circle cx="200" cy="130" r="5" fill="#93c1be"/><circle cx="200" cy="158" r="5" fill="#93c1be"/>
+<rect x="102" y="214" width="196" height="14" fill="#FFFFFF"/><rect x="102" y="242" width="196" height="14" fill="#93c1be"/></g>
+</svg>

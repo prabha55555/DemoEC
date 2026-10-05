@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Gold-Plated Jhumka Earrings">
+<rect width="800" height="1000" fill="#FFE8EC"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#D4A937" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#C0264B" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#8a1b36" opacity=".05"/>
+<ellipse cx="400" cy="737" rx="225" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(100.0 170.0) rotate(0 300 300) scale(1.5)">
+<circle cx="128" cy="46" r="16" fill="#D4A937"/><rect x="124" y="60" width="8" height="30" rx="4" fill="#D4A937"/>
+<path d="M66 196 Q66 94 128 94 Q190 94 190 196Z" fill="#D4A937"/>
+<path d="M94 196 Q94 126 128 118 Q162 126 162 196" fill="none" stroke="#8a1b36" stroke-opacity=".5" stroke-width="5"/>
+<circle cx="128" cy="150" r="14" fill="#C0264B"/><circle cx="128" cy="150" r="5" fill="#e39dae"/>
+<rect x="60" y="192" width="136" height="14" rx="7" fill="#8a1b36"/>
+<circle cx="80" cy="222" r="11" fill="#e39dae"/><circle cx="77" cy="219" r="3" fill="#fff" opacity=".8"/><circle cx="104" cy="222" r="11" fill="#e39dae"/><circle cx="101" cy="219" r="3" fill="#fff" opacity=".8"/><circle cx="128" cy="222" r="11" fill="#e39dae"/><circle cx="125" cy="219" r="3" fill="#fff" opacity=".8"/><circle cx="152" cy="222" r="11" fill="#e39dae"/><circle cx="149" cy="219" r="3" fill="#fff" opacity=".8"/><circle cx="176" cy="222" r="11" fill="#e39dae"/><circle cx="173" cy="219" r="3" fill="#fff" opacity=".8"/>
+<circle cx="92" cy="252" r="8" fill="#C0264B"/><circle cx="116" cy="252" r="8" fill="#C0264B"/><circle cx="140" cy="252" r="8" fill="#C0264B"/><circle cx="164" cy="252" r="8" fill="#C0264B"/>
+<circle cx="128" cy="276" r="8" fill="#C0264B"/>
+<circle cx="272" cy="46" r="16" fill="#D4A937"/><rect x="268" y="60" width="8" height="30" rx="4" fill="#D4A937"/>
+<path d="M210 196 Q210 94 272 94 Q334 94 334 196Z" fill="#D4A937"/>
+<path d="M238 196 Q238 126 272 118 Q306 126 306 196" fill="none" stroke="#8a1b36" stroke-opacity=".5" stroke-width="5"/>
+<circle cx="272" cy="150" r="14" fill="#C0264B"/><circle cx="272" cy="150" r="5" fill="#e39dae"/>
+<rect x="204" y="192" width="136" height="14" rx="7" fill="#8a1b36"/>
+<circle cx="224" cy="222" r="11" fill="#e39dae"/><circle cx="221" cy="219" r="3" fill="#fff" opacity=".8"/><circle cx="248" cy="222" r="11" fill="#e39dae"/><circle cx="245" cy="219" r="3" fill="#fff" opacity=".8"/><circle cx="272" cy="222" r="11" fill="#e39dae"/><circle cx="269" cy="219" r="3" fill="#fff" opacity=".8"/><circle cx="296" cy="222" r="11" fill="#e39dae"/><circle cx="293" cy="219" r="3" fill="#fff" opacity=".8"/><circle cx="320" cy="222" r="11" fill="#e39dae"/><circle cx="317" cy="219" r="3" fill="#fff" opacity=".8"/>
+<circle cx="236" cy="252" r="8" fill="#C0264B"/><circle cx="260" cy="252" r="8" fill="#C0264B"/><circle cx="284" cy="252" r="8" fill="#C0264B"/><circle cx="308" cy="252" r="8" fill="#C0264B"/>
+<circle cx="272" cy="276" r="8" fill="#C0264B"/></g>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Ceramic Table Lamp">
+<rect width="800" height="1000" fill="#FFF3DC"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#8A6A1F" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#E3B45E" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#a38244" opacity=".05"/>
+<ellipse cx="400" cy="720" rx="210" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(120.0 190.0) rotate(0 280 280) scale(1.4)">
+<path d="M120 58 L280 58 L322 208 L78 208Z" fill="#E3B45E"/>
+<path d="M150 58 L182 58 L170 208 L118 208Z" fill="#fff" opacity=".2"/>
+<ellipse cx="200" cy="58" rx="80" ry="9" fill="#a38244" opacity=".3"/>
+<ellipse cx="200" cy="208" rx="122" ry="13" fill="#f2ddb7"/>
+<ellipse cx="200" cy="208" rx="90" ry="8" fill="#FFE9A8"/>
+<rect x="191" y="214" width="18" height="110" fill="#8A6A1F"/>
+<path d="M114 372 Q128 318 200 318 Q272 318 286 372Z" fill="#a38244"/>
+<rect x="150" y="340" width="100" height="8" rx="4" fill="#8A6A1F"/></g>
+</svg>

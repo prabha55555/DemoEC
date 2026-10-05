@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Eyeshadow Palette (8 Shades)">
+<rect width="800" height="1000" fill="#EEE9FB"/>
+<circle cx="400" cy="480" r="380" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#F0B8D0" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#4A3A8C" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#352a65" opacity=".05"/>
+<ellipse cx="400" cy="852" rx="281.25" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(25.0 145.0) rotate(0 375 375) scale(1.875)">
+<rect x="46" y="84" width="308" height="214" rx="24" fill="#352a65"/>
+<rect x="60" y="98" width="280" height="186" rx="16" fill="#28204c"/>
+<rect x="72" y="110" width="58" height="76" rx="10" fill="#F2D2B4"/><rect x="78" y="118" width="14" height="60" rx="7" fill="#fff" opacity=".25"/><rect x="138" y="110" width="58" height="76" rx="10" fill="#E0A878"/><rect x="144" y="118" width="14" height="60" rx="7" fill="#fff" opacity=".25"/><rect x="204" y="110" width="58" height="76" rx="10" fill="#C27C4D"/><rect x="210" y="118" width="14" height="60" rx="7" fill="#fff" opacity=".25"/><rect x="270" y="110" width="58" height="76" rx="10" fill="#8C4A2F"/><rect x="276" y="118" width="14" height="60" rx="7" fill="#fff" opacity=".25"/><rect x="72" y="196" width="58" height="76" rx="10" fill="#4B2A1C"/><rect x="78" y="204" width="14" height="60" rx="7" fill="#fff" opacity=".25"/><rect x="138" y="196" width="58" height="76" rx="10" fill="#E8B04B"/><rect x="144" y="204" width="14" height="60" rx="7" fill="#fff" opacity=".25"/><rect x="204" y="196" width="58" height="76" rx="10" fill="#B5532A"/><rect x="210" y="204" width="14" height="60" rx="7" fill="#fff" opacity=".25"/><rect x="270" y="196" width="58" height="76" rx="10" fill="#2B1B16"/><rect x="276" y="204" width="14" height="60" rx="7" fill="#fff" opacity=".25"/>
+<rect x="70" y="326" width="200" height="16" rx="8" fill="#F0B8D0"/><path d="M270 326 L330 334 L270 342Z" fill="#4A3A8C"/></g>
+</svg>

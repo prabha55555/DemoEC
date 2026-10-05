@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Geometric Wall Clock">
+<rect width="800" height="1000" fill="#E4F6F3"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="140" cy="800" r="90" fill="#FFFFFF" opacity=".16"/>
+<circle cx="690" cy="190" r="46" fill="#0F766E" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#0b554f" opacity=".05"/>
+
+<g transform="translate(124.0 204.0) rotate(-7 276 276) scale(1.3800000000000001)">
+<circle cx="200" cy="200" r="168" fill="#0b554f"/><circle cx="200" cy="200" r="150" fill="#93c1be"/>
+<circle cx="200" cy="200" r="150" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+<line x1="200.0" y1="82.0" x2="200.0" y2="74.0" stroke="#0b554f" stroke-width="6" stroke-linecap="round"/><line x1="259.0" y1="97.8" x2="269.0" y2="80.5" stroke="#0b554f" stroke-width="6" stroke-linecap="round"/><line x1="302.2" y1="141.0" x2="319.5" y2="131.0" stroke="#0b554f" stroke-width="6" stroke-linecap="round"/><line x1="318.0" y1="200.0" x2="326.0" y2="200.0" stroke="#0b554f" stroke-width="6" stroke-linecap="round"/><line x1="302.2" y1="259.0" x2="319.5" y2="269.0" stroke="#0b554f" stroke-width="6" stroke-linecap="round"/><line x1="259.0" y1="302.2" x2="269.0" y2="319.5" stroke="#0b554f" stroke-width="6" stroke-linecap="round"/><line x1="200.0" y1="318.0" x2="200.0" y2="326.0" stroke="#0b554f" stroke-width="6" stroke-linecap="round"/><line x1="141.0" y1="302.2" x2="131.0" y2="319.5" stroke="#0b554f" stroke-width="6" stroke-linecap="round"/><line x1="97.8" y1="259.0" x2="80.5" y2="269.0" stroke="#0b554f" stroke-width="6" stroke-linecap="round"/><line x1="82.0" y1="200.0" x2="74.0" y2="200.0" stroke="#0b554f" stroke-width="6" stroke-linecap="round"/><line x1="97.8" y1="141.0" x2="80.5" y2="131.0" stroke="#0b554f" stroke-width="6" stroke-linecap="round"/><line x1="141.0" y1="97.8" x2="131.0" y2="80.5" stroke="#0b554f" stroke-width="6" stroke-linecap="round"/>
+<line x1="200" y1="200" x2="200" y2="108" stroke="#0b554f" stroke-width="9" stroke-linecap="round"/>
+<line x1="200" y1="200" x2="262" y2="238" stroke="#0b554f" stroke-width="9" stroke-linecap="round"/>
+<line x1="200" y1="214" x2="146" y2="152" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+<circle cx="200" cy="200" r="12" fill="#FFFFFF"/></g>
+</svg>

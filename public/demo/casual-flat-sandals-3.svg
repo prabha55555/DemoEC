@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Casual Flat Sandals">
+<rect width="800" height="1000" fill="#FFEFF0"/>
+<circle cx="400" cy="480" r="380" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#B4234B" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#E8B4B8" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#a78284" opacity=".05"/>
+<ellipse cx="400" cy="841" rx="271.875" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(37.5 157.5) rotate(0 362.5 362.5) scale(1.8125)">
+<path d="M30 306 Q30 288 62 288 L340 288 Q382 288 382 318 Q382 344 340 344 L62 344 Q30 344 30 318Z" fill="#a78284"/>
+<path d="M44 296 L346 296 Q372 298 372 312 L44 314Z" fill="#f5dddf"/>
+<path d="M112 296 Q150 140 232 296Z" fill="#E8B4B8"/><path d="M238 296 Q276 186 346 296Z" fill="#E8B4B8"/>
+<path d="M130 296 Q156 178 214 296" fill="none" stroke="#B4234B" stroke-width="8"/>
+<circle cx="172" cy="208" r="11" fill="#B4234B"/><circle cx="292" cy="250" r="10" fill="#B4234B"/></g>
+</svg>

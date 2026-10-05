@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Pendant Necklace">
+<rect width="800" height="1000" fill="#EFEAFF"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#D4A937" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#7C5CFC" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#5942b5" opacity=".05"/>
+<ellipse cx="400" cy="737" rx="225" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(100.0 170.0) rotate(0 300 300) scale(1.5)"><path d="M70 40 Q80 230 200 250 Q320 230 330 40" fill="none" stroke="#D4A937" stroke-width="5"/><circle cx="71.6" cy="62.2" r="4.5" fill="#c4b6fe"/><circle cx="76.0" cy="96.4" r="4.5" fill="#c4b6fe"/><circle cx="82.6" cy="127.3" r="4.5" fill="#c4b6fe"/><circle cx="91.5" cy="154.8" r="4.5" fill="#c4b6fe"/><circle cx="102.5" cy="178.8" r="4.5" fill="#c4b6fe"/><circle cx="115.7" cy="199.5" r="4.5" fill="#c4b6fe"/><circle cx="131.1" cy="216.7" r="4.5" fill="#c4b6fe"/><circle cx="148.7" cy="230.6" r="4.5" fill="#c4b6fe"/><circle cx="168.6" cy="241.1" r="4.5" fill="#c4b6fe"/><circle cx="190.6" cy="248.1" r="4.5" fill="#c4b6fe"/><circle cx="222.9" cy="244.3" r="4.5" fill="#c4b6fe"/><circle cx="243.6" cy="235.2" r="4.5" fill="#c4b6fe"/><circle cx="262.1" cy="222.7" r="4.5" fill="#c4b6fe"/><circle cx="278.4" cy="206.8" r="4.5" fill="#c4b6fe"/><circle cx="292.5" cy="187.5" r="4.5" fill="#c4b6fe"/><circle cx="304.4" cy="164.8" r="4.5" fill="#c4b6fe"/><circle cx="314.1" cy="138.7" r="4.5" fill="#c4b6fe"/><circle cx="321.6" cy="109.2" r="4.5" fill="#c4b6fe"/><circle cx="326.9" cy="76.3" r="4.5" fill="#c4b6fe"/><circle cx="330.0" cy="40.0" r="4.5" fill="#c4b6fe"/>
+<circle cx="200" cy="262" r="10" fill="none" stroke="#D4A937" stroke-width="5"/>
+<path d="M200 272 Q250 326 200 380 Q150 326 200 272Z" fill="#D4A937"/>
+<path d="M200 292 L222 330 L200 362 L178 330Z" fill="#7C5CFC"/><path d="M200 292 L200 362 M178 330 L222 330" stroke="#c4b6fe" stroke-width="3" opacity=".7"/></g>
+</svg>

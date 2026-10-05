@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Wireless Optical Mouse">
+<rect width="800" height="1000" fill="#EFEAFF"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#FFC93C" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#7C5CFC" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#5942b5" opacity=".05"/>
+<ellipse cx="400" cy="737" rx="225" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(100.0 170.0) rotate(0 300 300) scale(1.5)">
+<path d="M200 36 Q304 36 308 150 L302 262 Q296 366 200 366 Q104 366 98 262 L92 150 Q96 36 200 36Z" fill="#7C5CFC"/>
+<path d="M200 36 L200 168" stroke="#5942b5" stroke-width="4" opacity=".55"/><path d="M96 168 Q200 192 304 168" stroke="#5942b5" stroke-width="4" fill="none" opacity=".55"/>
+<rect x="185" y="86" width="30" height="58" rx="15" fill="#FFC93C"/>
+<path d="M124 120 Q118 200 128 290" stroke="#fff" stroke-opacity=".3" stroke-width="10" fill="none" stroke-linecap="round"/>
+<rect x="176" y="278" width="48" height="8" rx="4" fill="#5942b5" opacity=".35"/></g>
+</svg>

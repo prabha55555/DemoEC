@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Classic Analog Watch">
+<rect width="800" height="1000" fill="#EEF0F3"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="140" cy="800" r="90" fill="#B7C0C4" opacity=".16"/>
+<circle cx="690" cy="190" r="46" fill="#1F2A28" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#161e1d" opacity=".05"/>
+<ellipse cx="400" cy="726" rx="207.00000000000003" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(124.0 204.0) rotate(-7 276 276) scale(1.3800000000000001)">
+<path d="M148 116 L160 10 L240 10 L252 116Z" fill="#1F2A28"/><path d="M148 284 L160 390 L240 390 L252 284Z" fill="#1F2A28"/>
+<circle cx="200" cy="326" r="5" fill="#161e1d" opacity=".6"/><circle cx="200" cy="346" r="5" fill="#161e1d" opacity=".6"/><circle cx="200" cy="366" r="5" fill="#161e1d" opacity=".6"/>
+<rect x="296" y="182" width="14" height="36" rx="6" fill="#B7C0C4"/>
+<circle cx="200" cy="200" r="104" fill="#B7C0C4"/><circle cx="200" cy="200" r="90" fill="#9a9f9e"/>
+<line x1="200.0" y1="130.0" x2="200.0" y2="128.0" stroke="#161e1d" stroke-width="4" stroke-linecap="round"/><line x1="235.0" y1="139.4" x2="242.0" y2="127.3" stroke="#161e1d" stroke-width="4" stroke-linecap="round"/><line x1="260.6" y1="165.0" x2="272.7" y2="158.0" stroke="#161e1d" stroke-width="4" stroke-linecap="round"/><line x1="270.0" y1="200.0" x2="272.0" y2="200.0" stroke="#161e1d" stroke-width="4" stroke-linecap="round"/><line x1="260.6" y1="235.0" x2="272.7" y2="242.0" stroke="#161e1d" stroke-width="4" stroke-linecap="round"/><line x1="235.0" y1="260.6" x2="242.0" y2="272.7" stroke="#161e1d" stroke-width="4" stroke-linecap="round"/><line x1="200.0" y1="270.0" x2="200.0" y2="272.0" stroke="#161e1d" stroke-width="4" stroke-linecap="round"/><line x1="165.0" y1="260.6" x2="158.0" y2="272.7" stroke="#161e1d" stroke-width="4" stroke-linecap="round"/><line x1="139.4" y1="235.0" x2="127.3" y2="242.0" stroke="#161e1d" stroke-width="4" stroke-linecap="round"/><line x1="130.0" y1="200.0" x2="128.0" y2="200.0" stroke="#161e1d" stroke-width="4" stroke-linecap="round"/><line x1="139.4" y1="165.0" x2="127.3" y2="158.0" stroke="#161e1d" stroke-width="4" stroke-linecap="round"/><line x1="165.0" y1="139.4" x2="158.0" y2="127.3" stroke="#161e1d" stroke-width="4" stroke-linecap="round"/>
+<line x1="200" y1="200" x2="200" y2="136" stroke="#161e1d" stroke-width="7" stroke-linecap="round"/>
+<line x1="200" y1="200" x2="244" y2="224" stroke="#161e1d" stroke-width="7" stroke-linecap="round"/>
+<line x1="200" y1="210" x2="164" y2="170" stroke="#B7C0C4" stroke-width="3" stroke-linecap="round"/>
+<circle cx="200" cy="200" r="8" fill="#B7C0C4"/></g>
+</svg>

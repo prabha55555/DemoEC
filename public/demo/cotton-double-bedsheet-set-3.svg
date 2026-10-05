@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Cotton Double Bedsheet Set">
+<rect width="800" height="1000" fill="#FFEFF0"/>
+<circle cx="400" cy="480" r="380" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#B4234B" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#E8B4B8" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#a78284" opacity=".05"/>
+<ellipse cx="400" cy="852" rx="281.25" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(25.0 145.0) rotate(0 375 375) scale(1.875)">
+<rect x="132" y="78" width="140" height="74" rx="32" fill="#fff"/><rect x="132" y="78" width="140" height="74" rx="32" fill="none" stroke="#B4234B" stroke-width="5"/>
+<rect x="68" y="272" width="264" height="86" rx="14" fill="#a78284"/>
+<rect x="78" y="198" width="244" height="86" rx="14" fill="#E8B4B8"/>
+<rect x="88" y="124" width="224" height="86" rx="14" fill="#f5dddf"/>
+<rect x="110" y="144" width="220" height="10" rx="5" fill="#E8B4B8" opacity="0.6"/><rect x="110" y="164" width="180" height="6" rx="3" fill="#B4234B" opacity=".45"/><rect x="100" y="218" width="200" height="10" rx="5" fill="#B4234B" opacity="1"/><rect x="100" y="238" width="160" height="6" rx="3" fill="#B4234B" opacity=".45"/><rect x="90" y="292" width="180" height="10" rx="5" fill="#E8B4B8" opacity="0.6"/><rect x="90" y="312" width="140" height="6" rx="3" fill="#B4234B" opacity=".45"/></g>
+</svg>

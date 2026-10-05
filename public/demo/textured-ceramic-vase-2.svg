@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Textured Ceramic Vase">
+<rect width="800" height="1000" fill="#EAF4F1"/>
+<circle cx="400" cy="480" r="320" fill="#fff" opacity=".55"/>
+<circle cx="140" cy="800" r="90" fill="#0F766E" opacity=".16"/>
+<circle cx="690" cy="190" r="46" fill="#BFD9D2" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#8a9c97" opacity=".05"/>
+<ellipse cx="400" cy="726" rx="207.00000000000003" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(124.0 204.0) rotate(-7 276 276) scale(1.3800000000000001)">
+<path d="M200 66 Q190 20 150 10" stroke="#5E8C61" stroke-width="5" fill="none" stroke-linecap="round"/>
+<path d="M200 66 Q204 26 206 0" stroke="#5E8C61" stroke-width="5" fill="none" stroke-linecap="round"/>
+<path d="M200 66 Q226 28 256 18" stroke="#5E8C61" stroke-width="5" fill="none" stroke-linecap="round"/>
+<ellipse cx="148" cy="22" rx="20" ry="9" transform="rotate(-30 148 22)" fill="#7BA77D"/><ellipse cx="256" cy="26" rx="20" ry="9" transform="rotate(25 256 26)" fill="#7BA77D"/><circle cx="206" cy="8" r="12" fill="#0F766E"/>
+<path d="M165 120 Q165 90 175 70 L225 70 Q235 90 235 120 Q320 190 300 290 Q285 372 200 372 Q115 372 100 290 Q80 190 165 120Z" fill="#BFD9D2"/>
+<ellipse cx="200" cy="70" rx="27" ry="7" fill="#8a9c97"/>
+<path d="M108 254 Q200 288 292 254" stroke="#0F766E" stroke-width="10" fill="none"/><path d="M104 300 Q200 336 296 300" stroke="#e2eeeb" stroke-width="8" fill="none"/>
+<path d="M132 236 Q142 190 172 152" stroke="#fff" stroke-opacity=".35" stroke-width="10" fill="none" stroke-linecap="round"/></g>
+</svg>

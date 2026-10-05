@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Slim Fit Denim Jacket">
+<rect width="800" height="1000" fill="#E8EAF0"/>
+<circle cx="400" cy="480" r="380" fill="#fff" opacity=".55"/>
+<circle cx="680" cy="160" r="90" fill="#E9B949" opacity=".16"/>
+<circle cx="120" cy="840" r="46" fill="#2B3A55" opacity=".14"/>
+<rect y="860" width="800" height="140" fill="#1f2a3d" opacity=".05"/>
+<ellipse cx="400" cy="852" rx="281.25" ry="20" fill="#0B1F1D" opacity=".12"/>
+<g transform="translate(25.0 145.0) rotate(0 375 375) scale(1.875)">
+<path d="M125 62 L68 96 L36 320 L96 332 L106 190 L106 352 L294 352 L294 190 L304 332 L364 320 L332 96 L275 62 L200 105Z" fill="#2B3A55"/>
+<path d="M68 96 L36 320 L96 332 L106 190 L106 120Z" fill="#1f2a3d" opacity=".14"/>
+<path d="M332 96 L364 320 L304 332 L294 190 L294 120Z" fill="#1f2a3d" opacity=".14"/>
+<path d="M125 62 L198 122 L160 150 L108 84Z" fill="#1f2a3d"/><path d="M275 62 L202 122 L240 150 L292 84Z" fill="#1f2a3d"/>
+<path d="M200 122 L200 352" stroke="#1f2a3d" stroke-width="5"/>
+<path d="M106 168 L294 168" stroke="#E9B949" stroke-width="3" stroke-dasharray="7 6" fill="none"/>
+<rect x="122" y="212" width="58" height="50" rx="4" fill="none" stroke="#E9B949" stroke-width="3" stroke-dasharray="7 6"/>
+<rect x="220" y="212" width="58" height="50" rx="4" fill="none" stroke="#E9B949" stroke-width="3" stroke-dasharray="7 6"/>
+<circle cx="200" cy="160" r="7" fill="#E9B949"/><circle cx="200" cy="215" r="7" fill="#E9B949"/><circle cx="200" cy="270" r="7" fill="#E9B949"/><circle cx="200" cy="325" r="7" fill="#E9B949"/></g>
+</svg>
