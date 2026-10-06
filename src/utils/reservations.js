@@ -22,19 +22,17 @@ export async function peekPendingByReceipt(supabase, receipt) {
 // Marks one boolean flag inside a pending_orders row's `computed` JSON, but only if it
 // isn't already set -- the compare-and-set that makes a release idempotent and
 // exactly-once. Returns true if THIS call is the one that just set it.
-async function claimReleaseFlag(supabase, checkoutAttemptKey, computed, flag) {
-  if (computed[flag]) return false;
-  const { data, error } = await supabase
-    .from('pending_orders')
-    .update({ computed: { ...computed, [flag]: true } })
-    .eq('checkout_attempt_key', checkoutAttemptKey)
-    .is(`computed->>${flag}`, null)
-    .select('checkout_attempt_key');
+//
+// Done by one SQL statement (claim_release_flag, jsonb_set on the CURRENT value): the earlier
+// version wrote back a stale copy of `computed`, so setting the gift-card flag erased the coupon
+// flag and a repeated release gave the coupon use back a second time.
+async function claimReleaseFlag(supabase, checkoutAttemptKey, flag) {
+  const { data, error } = await supabase.rpc('claim_release_flag', { p_key: checkoutAttemptKey, p_flag: flag });
   if (error) {
     console.error(`claimReleaseFlag(${flag}) failed.`, error.message, checkoutAttemptKey);
     return false;
   }
-  return Array.isArray(data) && data.length > 0;
+  return data === true;
 }
 
 // Releases the stock, the coupon use (if any) and the gift-card balance (if any) held by
@@ -58,7 +56,7 @@ export async function releaseCheckoutReservation(supabase, checkoutAttemptKey) {
   const computed = row.computed || {};
 
   if (computed.couponCode && Number(computed.computedDiscount) > 0) {
-    if (await claimReleaseFlag(supabase, checkoutAttemptKey, computed, 'couponReleased')) {
+    if (await claimReleaseFlag(supabase, checkoutAttemptKey, 'couponReleased')) {
       const { error: couponError } = await supabase.rpc('release_coupon_use', { p_code: computed.couponCode });
       if (couponError) {
         console.error('releaseCheckoutReservation: release_coupon_use failed.', couponError.message, checkoutAttemptKey);
@@ -68,7 +66,7 @@ export async function releaseCheckoutReservation(supabase, checkoutAttemptKey) {
   }
 
   if (computed.giftCardCode && Number(computed.computedGiftCardApplied) > 0) {
-    if (await claimReleaseFlag(supabase, checkoutAttemptKey, computed, 'giftCardReleased')) {
+    if (await claimReleaseFlag(supabase, checkoutAttemptKey, 'giftCardReleased')) {
       const credited = await creditGiftCardBalance(supabase, computed.giftCardCode, computed.computedGiftCardApplied);
       if (!credited) {
         console.error('SECURITY/RECONCILIATION: could not credit back a reserved gift card balance -- needs manual check.', computed.giftCardCode, computed.computedGiftCardApplied, checkoutAttemptKey);

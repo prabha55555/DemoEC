@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { thumb } from '../utils/thumbnail';
 import { usePageMeta } from '../utils/usePageMeta';
 import { COMPANY, DEFAULT_WA_MESSAGE, whatsappLink } from '../config/company';
+import { shippingPromise } from '../utils/storeCopy';
 import PageHero from '../components/PageHero';
 
 // Photo + video as a 2-slide carousel for the About page side panel -- swipe on
@@ -124,7 +125,7 @@ export function About() {
 
   // Quick facts shown under the story (all taken from the story copy itself).
   const facts = [
-    ['Free delivery on every order', <><path d="M3 7.5h11v8.5H3zM14 10.5h4l3 3v2.5h-7z" /><circle cx="7.5" cy="17.5" r="1.8" /><circle cx="17" cy="17.5" r="1.8" /></>],
+    [shippingPromise(brand), <><path d="M3 7.5h11v8.5H3zM14 10.5h4l3 3v2.5h-7z" /><circle cx="7.5" cy="17.5" r="1.8" /><circle cx="17" cy="17.5" r="1.8" /></>],
     ['Secure online payments', <><rect x="5" y="10.5" width="14" height="10" rx="2.5" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" /></>],
     [`Support ${COMPANY.hours.toLowerCase()}`, <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.2 2" /></>],
   ];
@@ -150,7 +151,7 @@ export function About() {
             <p className="ab-kicker">Who we are</p>
             <h2 className="ab-h2">Shopping made simple</h2>
             <p className="ab-p">{COMPANY.name} runs this online store from Tiruppur, Tamil Nadu. We bring together products from many categories — fashion, home and kitchen, beauty, electronics and more — so you can find what you need in one place.</p>
-            <p className="ab-p">Our aim is a smooth shopping experience: easy search and filters, clear prices, free delivery on every order and secure online payments.</p>
+            <p className="ab-p">Our aim is a smooth shopping experience: easy search and filters, clear prices, {shippingPromise(brand).toLowerCase()} and secure online payments.</p>
             <p className="ab-p ab-p-hl">Our team is available {COMPANY.hours.toLowerCase()} to help with your questions.</p>
             <ul className="ab-facts">
               {facts.map(([t, ico]) => (
@@ -233,9 +234,13 @@ export function About() {
 // ── CONTACT ─────────────────────────────────────────────────
 export function Contact() {
   const { currentUser } = useAuth();
+  const { brand } = useBrand();
+  const phone = brand.support_phone || COMPANY.phoneDisplay;
+  const tel = (brand.support_phone || COMPANY.phoneTel).replace(/[^\d+]/g, '');
+  const email = brand.support_email || COMPANY.email;
   usePageMeta({
     title: 'Contact Us',
-    description: `Get in touch with ${COMPANY.name} — questions, orders and enquiries. Call ${COMPANY.phoneDisplay} or WhatsApp us, 24 hours.`,
+    description: `Get in touch with ${COMPANY.name} for help with an order or a product. Call ${COMPANY.phoneDisplay} or WhatsApp us, ${COMPANY.hours.toLowerCase()}.`,
     path: '/contact',
   });
   const [form, setForm] = useState({ name:'', email: currentUser?.email || '', phone:'', subject:'', message:'' });
@@ -275,16 +280,16 @@ export function Contact() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.ok) throw new Error(data?.error || 'Failed to send.');
       setSent(true);
-      toast.success('Enquiry sent. We will be in touch within 24 hours.');
+      toast.success('Message sent. We will be in touch within 24 hours.');
       setForm({ name:'', email:'', phone:'', subject:'', message:'' });
     } catch { toast.error('Failed to send. Please try again.'); }
     finally { setSending(false); }
   }
 
   const contacts = [
-    { label:'Call us', val:COMPANY.phoneDisplay, href:`tel:${COMPANY.phoneTel}`, Icon:PhoneIcon },
+    { label:'Call us', val:phone, href:`tel:${tel}`, Icon:PhoneIcon },
     { label:'WhatsApp', val:'Message us directly', href:whatsappLink(DEFAULT_WA_MESSAGE), Icon:WhatsAppIcon, wa:true },
-    { label:'Email', val:COMPANY.email, href:`mailto:${COMPANY.email}`, Icon:EmailIcon },
+    { label:'Email', val:email, href:`mailto:${email}`, Icon:EmailIcon },
     { label:'Website', val:COMPANY.websiteDisplay, href:COMPANY.website, Icon:GlobeIcon },
     { label:'Business hours', val:COMPANY.hours, href:null, Icon:ClockIcon },
   ];
@@ -293,7 +298,7 @@ export function Contact() {
     { label:'Your name', key:'name', type:'text', ph:'Full name', ac:'name' },
     { label:'Email address', key:'email', type:'email', ph:'you@example.com', ac:'email' },
     { label:'Mobile number', key:'phone', type:'tel', ph:'+91 XXXXX XXXXX', ac:'tel' },
-    { label:'Subject', key:'subject', type:'text', ph:'Product enquiry, order, shipping, etc.', ac:'off' },
+    { label:'Subject', key:'subject', type:'text', ph:'Order, delivery, return, product question…', ac:'off' },
   ];
 
   const chev = (
@@ -335,7 +340,7 @@ export function Contact() {
               <div className="ct-row is-top">
                 <span className="ct-ico"><PinIcon width="22" height="22" aria-hidden="true" /></span>
                 <span className="ct-txt">
-                  <span className="ct-lbl">Visit us</span>
+                  <span className="ct-lbl">Registered office</span>
                   <span className="ct-val ct-addr">
                     {COMPANY.name}<br />
                     {COMPANY.addressLines.map((l, i) => <React.Fragment key={i}>{l}{i < COMPANY.addressLines.length - 1 && <br />}</React.Fragment>)}
@@ -352,7 +357,7 @@ export function Contact() {
 
           {/* RIGHT -- ENQUIRY FORM */}
           <div className="ct-form">
-            <h2 className="ct-h">Send an enquiry</h2>
+            <h2 className="ct-h">Send us a message</h2>
             <p className="ct-sub">Fill in the form and we will get back to you.</p>
             <ul className="ct-points">
               <li>
@@ -367,7 +372,7 @@ export function Contact() {
 
             {sent && (
               <div role="status" className="form-success">
-                Your enquiry has been received. We will be in touch within 24 hours.
+                Your message has been received. We will be in touch within 24 hours.
               </div>
             )}
             <form onSubmit={send}>
@@ -389,7 +394,7 @@ export function Contact() {
                 />
               </div>
               <button type="submit" className="btn btn-gold ct-submit" disabled={sending}>
-                {sending ? <span className="spinner"></span> : 'Send enquiry'}
+                {sending ? <span className="spinner"></span> : 'Send message'}
               </button>
             </form>
           </div>

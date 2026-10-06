@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { thumb } from '../utils/thumbnail';
-import { fmtDate } from '../data/products';
+import { fmtDate } from '../utils/orderFormat';
+import { usePageMeta } from '../utils/usePageMeta';
+import { COMPANY } from '../config/company';
 import PageHero from '../components/PageHero';
 import { WhatsAppIcon } from '../components/SocialIcons';
 
-// Rendered at /insights/:id. Data still comes from the `stories` table.
+// Rendered at /insights/:id (a Blog article). Data comes from the `stories` table.
 export default function StoryPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -29,6 +31,14 @@ export default function StoryPage() {
     return () => { cancelled = true; };
   }, [id]);
 
+  // Called before the early returns below (hooks cannot be conditional); missing fields leave the defaults in place.
+  usePageMeta({
+    title: story ? story.title : 'Article',
+    description: story ? (story.subtitle || String(story.story || '').replace(/\s+/g, ' ').trim().slice(0, 155) || `An article from ${COMPANY.name}.`) : undefined,
+    path: `/insights/${id}`,
+    image: story?.images?.[0],
+  });
+
   if (loading) {
     return <div style={{ paddingTop: 'var(--hdr-h)', minHeight: '80vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="spinner"></span></div>;
   }
@@ -41,7 +51,7 @@ export default function StoryPage() {
             <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4.5h11a2 2 0 0 1 2 2V19a1.5 1.5 0 0 0 1.5-1.5V9H18" /><path d="M5 4.5V17a2 2 0 0 0 2 2h12" /><path d="M9 9.5l5 5M14 9.5l-5 5" /></svg>
           </span>
           <div style={{ fontFamily: 'var(--font-head)', fontWeight: 500, fontSize: 20, color: 'var(--ink)', marginBottom: 16 }}>Article not found</div>
-          <button className="btn btn-gold" onClick={() => navigate('/insights')}>Back to Insights</button>
+          <button className="btn btn-gold" onClick={() => navigate('/insights')}>Back to Blog</button>
         </div>
       </div>
     );
@@ -53,7 +63,7 @@ export default function StoryPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <PageHero
-        crumbs={[{ label: 'Insights', to: '/insights' }, { label: 'Article' }]}
+        crumbs={[{ label: 'Blog', to: '/insights' }, { label: 'Article' }]}
         title={story.title}
       >
         <div className="ar-meta">
@@ -86,7 +96,7 @@ export default function StoryPage() {
               <a href={shareHref} target="_blank" rel="noreferrer" className="btn btn-wa btn-sm" style={{ textDecoration: 'none' }}>
                 <WhatsAppIcon width="16" height="16" aria-hidden="true" /> WhatsApp
               </a>
-              <Link to="/insights" className="btn btn-outline btn-sm ar-back" style={{ textDecoration: 'none' }}>&larr; Back to Insights</Link>
+              <Link to="/insights" className="btn btn-outline btn-sm ar-back" style={{ textDecoration: 'none' }}>&larr; Back to Blog</Link>
             </div>
           </div>
         </article>

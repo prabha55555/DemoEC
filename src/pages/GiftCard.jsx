@@ -4,7 +4,7 @@ import { useBrand } from '../context/BrandContext';
 import { useCartActions } from '../context/CartContext';
 import { usePageMeta } from '../utils/usePageMeta';
 import { COMPANY } from '../config/company';
-import { fmt } from '../data/products';
+import { formatMoney as fmt } from '../utils/catalog';
 import { DEFAULT_GIFTCARD_MIN, giftcardMaxOf } from '../utils/pricing';
 import PageHero from '../components/PageHero';
 import markImg from '../assets/brightlight-mark.png';
@@ -16,7 +16,7 @@ export default function GiftCard() {
   const { brand } = useBrand();
   const { addToCart } = useCartActions();
   const navigate = useNavigate();
-  usePageMeta({ title: 'Gift Cards', description: `Give the gift of choice — ${COMPANY.name} gift cards.`, path: '/gift-card' });
+  usePageMeta({ title: 'Gift Cards', description: `Give the gift of choice with a ${COMPANY.name} gift card. Pick an amount and let them choose what they love.`, path: '/gift-card' });
   const [amount, setAmount] = useState(2500);
   const [custom, setCustom] = useState('');
   const [recipientName, setRecipientName] = useState('');
@@ -31,6 +31,7 @@ export default function GiftCard() {
   const activeAmount = custom ? Number(custom) : amount;
   const valid = Number.isInteger(activeAmount) && activeAmount >= min && activeAmount <= max;
   const visiblePresets = PRESETS.filter(v => v >= min && v <= max);
+  const validityMonths = Number(brand.gift_card_validity_months) || 0;
 
   function selectPreset(v) {
     setAmount(v);
@@ -64,8 +65,6 @@ export default function GiftCard() {
       // create one redeemable balance). The redeemable code itself is generated server-side
       // after payment (src/utils/orderWrite.js -> issueGiftCards), never in the browser.
       stock: 1,
-      images: [],
-      bg: 'var(--primary)',
       isGiftCard: true,
       recipientName: recipientName.trim(),
       recipientEmail: recipientEmail.trim(),
@@ -96,7 +95,7 @@ export default function GiftCard() {
   const steps = [
     ['Pick an amount', 'Choose a preset or enter an amount of your own.'],
     ['Tell us who it is for', "Add the recipient's name, email and an optional personal message."],
-    ['We pass it on', 'Our team will personally pass the gift card code and your message on once your order is placed.'],
+    ['Pay and share the code', 'Once your order is placed, the gift card code appears in your order and under Account → Gift cards. Share it with the recipient, along with your message.'],
   ];
 
   return (
@@ -187,7 +186,7 @@ export default function GiftCard() {
               <textarea id="gc-msg" className="form-textarea" value={message} onChange={e => setMessage(e.target.value)} rows={3} style={{ resize: 'vertical', lineHeight: 1.6 }} />
             </div>
             <div className="gc-note">
-              Our team will personally pass the gift card code and your message on to {recipientName || 'the recipient'} once your order is placed.
+              After payment, the gift card code is shown in your order so you can share it with {recipientName || 'the recipient'}. {validityMonths > 0 ? `Gift cards are valid for ${validityMonths} months from purchase.` : ''}
             </div>
 
             <div className="gc-total">

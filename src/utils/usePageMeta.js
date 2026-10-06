@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
+import { COMPANY } from '../config/company';
 
-const SITE_URL = 'https://www.brightlightsolutions.in';
-const DEFAULT_TITLE = 'Brightlight Solutions';
+const SITE_URL = COMPANY.website;
+const DEFAULT_TITLE = COMPANY.name;
 
 function upsertMeta(attr, key, content) {
   if (!content) return null;
@@ -35,8 +36,8 @@ function upsertCanonical(href) {
 // NOT help WhatsApp/Facebook/Twitter/Slack link-preview crawlers, which don't
 // run JS and only ever see index.html's static tags. That's a known, accepted
 // limitation of this SPA with no server-side rendering; api/product-share.js
-// is the existing, deliberate workaround specifically for the WhatsApp
-// enquiry link case, and isn't something this hook can or should replace.
+// is the deliberate workaround for sharing a product link with a preview card,
+// and isn't something this hook can or should replace.
 export function usePageMeta({ title, description, path, image }) {
   useEffect(() => {
     const prevTitle = document.title;

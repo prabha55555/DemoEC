@@ -1,7 +1,6 @@
 // Vercel serverless function -- a tiny, crawlable "share card" for a single
-// product, used ONLY as the link WhatsApp enquiry messages point to (see
-// enquireWhatsAppUrl() in src/components/ProductCard.jsx and handleEnquire()
-// in src/pages/ProductPage.jsx).
+// product, for links that are pasted into WhatsApp and similar apps and
+// should unfurl as a photo card with the product's name, brand and price.
 //
 // Why this exists: WhatsApp's own link-preview crawler doesn't execute
 // JavaScript and only renders an image thumbnail for a URL when the fetched
@@ -15,9 +14,11 @@
 // redirects a real visitor's browser to the actual product page.
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
+import { COMPANY } from '../src/config/company.js';
+import { formatMoney, discountPercent } from '../src/utils/catalog.js';
 
 const supabase = createClient(process.env.REACT_APP_SUPABASE_URL, process.env.REACT_APP_SUPABASE_ANON_KEY);
-const SITE_URL = 'https://www.brightlightsolutions.in';
+const SITE_URL = COMPANY.website;
 const OG_IMAGE_MAX = 1200;
 
 // SEC-STOR-3: `original` below is a product.images URL -- normally our own
@@ -90,7 +91,7 @@ function escapeHtml(s) {
 // block. The already-escaped <meta http-equiv="refresh"> alone is enough for
 // the redirect -- near-instant, no JS execution involved at all.
 function redirectPage(url) {
-  return `<!doctype html><html><head><meta charset="utf-8"/><meta http-equiv="refresh" content="0;url=${escapeHtml(url)}"/></head><body><a href="${escapeHtml(url)}">Continue to Brightlight Solutions</a></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"/><meta http-equiv="refresh" content="0;url=${escapeHtml(url)}"/></head><body><a href="${escapeHtml(url)}">Continue to ${escapeHtml(COMPANY.name)}</a></body></html>`;
 }
 
 // Product ids are Supabase-generated UUIDs -- anything else can only be a
@@ -172,16 +173,20 @@ export default async function handler(req, res) {
 
   // Same public read every product listing page already does (no anon
   // SELECT restriction on `products` -- this table is meant to be public).
-  const { data: product } = await supabase.from('products').select('name, images, cat, origin').eq('id', id).maybeSingle();
+  const { data: product } = await supabase.from('products').select('name, brand, subtitle, price, mrp, images, status').eq('id', id).maybeSingle();
 
-  if (!product) {
+  // Only live products get a card; a draft is "not found" here exactly like on the storefront.
+  if (!product || product.status !== 'active') {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.status(404).send(redirectPage(productUrl));
     return;
   }
 
-  const title = product.name || 'Brightlight Solutions';
-  const description = [product.cat, product.origin].filter(Boolean).join(' — ') || 'View this product at Brightlight Solutions';
+  const title = product.name || COMPANY.name;
+  // "Kaveri Weaves · ₹799 (11% off) — Straight-fit kurta with embroidered placket"
+  const off = discountPercent(product.price, product.mrp);
+  const priceText = Number(product.price) > 0 ? `${formatMoney(product.price)}${off > 0 ? ` (${off}% off)` : ''}` : '';
+  const description = [[product.brand, priceText].filter(Boolean).join(' · '), product.subtitle].filter(Boolean).join(' — ') || `View this product at ${COMPANY.name}`;
   // Points at this same file's own img=1 branch above (a re-encoded,
   // guaranteed-baseline JPEG), not directly at Supabase Storage's transform
   // URL -- see the comment on that branch for why.

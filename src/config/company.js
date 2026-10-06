@@ -6,7 +6,7 @@
 export const COMPANY = {
   name: 'Brightlight Solutions',
   shortName: 'Brightlight',
-  tagline: 'Technology That Moves Business Forward',
+  tagline: 'Everything you need, delivered.',
 
   phoneDisplay: '+91 78450 81278',
   phoneTel: '+917845081278',

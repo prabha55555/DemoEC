@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { thumb } from '../utils/thumbnail';
-import { fmtDate } from '../data/products';
+import { fmtDate } from '../utils/orderFormat';
 import { usePageMeta } from '../utils/usePageMeta';
 import { COMPANY } from '../config/company';
 import PageHero from '../components/PageHero';
@@ -15,11 +15,11 @@ function excerptOf(s, max = 140) {
   return raw.slice(0, max).replace(/\s+\S*$/, '') + '…';
 }
 
-// Rendered at /insights ("Brightlight Insights"). Data still comes from the `stories` table.
+// Rendered at /insights and shown to customers as the Blog. Data comes from the `stories` table.
 export default function Stories() {
   usePageMeta({
-    title: 'Insights',
-    description: `Articles, news and updates from ${COMPANY.name}.`,
+    title: 'Blog',
+    description: `Shopping guides, news and updates from ${COMPANY.name}.`,
     path: '/insights',
   });
   const [stories, setStories] = useState([]);
@@ -64,9 +64,9 @@ export default function Stories() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <PageHero
-        crumb="Insights"
-        title="Brightlight Insights"
-        subtitle="Shopping guides, news and updates from Brightlight."
+        crumb="Blog"
+        title={`${COMPANY.shortName} Blog`}
+        subtitle="Shopping guides, news and updates."
       />
 
       <section className="bl-wrap bg-page">
@@ -77,7 +77,7 @@ export default function Stories() {
             <span className="bg-empty-ico" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4.5h11a2 2 0 0 1 2 2V19a1.5 1.5 0 0 0 1.5-1.5V9H18" /><path d="M5 4.5V17a2 2 0 0 0 2 2h12" /><path d="M8.5 9h6M8.5 12.5h6" /></svg>
             </span>
-            <div className="empty-state" style={{ padding: '10px 0 0' }}>No insights published yet. Please check back soon.</div>
+            <div className="empty-state" style={{ padding: '10px 0 0' }}>No articles published yet. Please check back soon.</div>
           </div>
         ) : (
           <div className="bg-grid">

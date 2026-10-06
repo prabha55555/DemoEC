@@ -1,42 +1,48 @@
 import React, { useId, useState, useRef, useEffect } from 'react';
-import { thumb } from '../utils/thumbnail';
 import { uploadToStorage, ALLOWED_IMAGE_ACCEPT } from '../utils/supabaseStorage';
 import { clampVideoPosition } from '../utils/productMedia';
+import { mapWithConcurrency } from '../admin/lib/pool';
+import Icon from '../admin/ui/Icon';
+import Thumb from '../admin/ui/Thumb';
 import toast from 'react-hot-toast';
 
 // ── IMAGE UPLOADER ─────────────────────────────
-// Two modes:
-// 1. Direct upload to Supabase Storage (always available -- same project as the rest of the site)
-// 2. Paste URL manually (works always, no config needed -- also how pre-migration Cloudinary URLs get added)
+// Two ways to add a photo:
+// 1. Direct upload to Supabase Storage (same project as the rest of the site)
+// 2. Paste a URL (also how photos hosted elsewhere get added)
 //
-// Optional `video` prop (videoUrl + videoPosition + onVideoPositionChange): when a product has a video,
-// it appears as one more tile in this same grid, at videoPosition among the photos -- its own Move Left/
-// Right buttons shift videoPosition instead of reordering `images`, which lets an admin place the video
-// anywhere in the gallery order the product page will use (see src/utils/productMedia.js). The video's
-// own URL is set elsewhere (Admin's Product Video field); this tile is ordering-only, so it has no
-// remove/upload controls of its own.
+//   <ImageUploader images={form.images} onChange={imgs => set('images', imgs)} folder="products" />
+//   multiple={false} keeps a single image (the new upload replaces the old one: onChange gets [url]).
+//
+// Optional `video` prop (videoUrl + videoPosition + onVideoPositionChange): when a product has a video, it appears
+// as one more tile in this same grid, at videoPosition among the photos -- its own ← → buttons shift videoPosition
+// instead of reordering `images`, so the admin can place the video anywhere in the order the product page will use
+// (see src/utils/productMedia.js). The video's own URL is set elsewhere; this tile is ordering-only, so it has no
+// remove / upload controls of its own.
 
-export default function ImageUploader({ images = [], onChange, folder = 'products', label = 'Product Images', multiple = true, video = null }) {
+// A 20-photo batch used to open 20 uploads at once; a few at a time is just as fast on a normal connection
+// and never overwhelms a slow one.
+const UPLOAD_CONCURRENCY = 3;
+
+export default function ImageUploader({ images = [], onChange, folder = 'products', label = 'Product images', multiple = true, video = null, help }) {
   const [urlInput, setUrlInput] = useState('');
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [mode, setMode] = useState('upload'); // 'url' or 'upload'
   const fileRef = useRef();
   const groupLabelId = useId();
-  // A multi-file upload takes several seconds; if the admin removes/reorders an
-  // existing image via its own onChange call while the loop is still running, the
-  // upload's own closed-over `images` prop is stale by the time it finishes. Track
-  // the latest value in a ref so the final merge doesn't silently revert that edit.
+  // A multi-file upload takes several seconds; if the admin removes/reorders an existing image via its own
+  // onChange call while the batch is still running, the upload's closed-over `images` prop is stale by the
+  // time it finishes. Track the latest value in a ref so the final merge doesn't silently revert that edit.
   const imagesRef = useRef(images);
   useEffect(() => { imagesRef.current = images; }, [images]);
 
-  // Guards against a slow upload finishing after this uploader has been swapped out
-  // for a different record (Admin.jsx keys each ImageUploader by the record's id, so
-  // switching records unmounts this instance) -- without this, a photo uploaded for
-  // product A could land on product B's form if the admin navigated away mid-upload.
-  // Re-armed on every mount: React.StrictMode (the dev server) mounts, unmounts and re-mounts
-  // effects once, and a cleanup-only effect would leave this false for good -- the upload then
-  // finished silently, never attached its photos and the button sat on "Uploading... 0%".
+  // Guards against a slow upload finishing after this uploader has been swapped out for a different record
+  // (screens key each ImageUploader by the record's id, so switching records unmounts this instance) -- without
+  // this, a photo uploaded for product A could land on product B's form if the admin navigated away mid-upload.
+  // Re-armed on every mount: React.StrictMode (the dev server) mounts, unmounts and re-mounts effects once,
+  // and a cleanup-only effect would leave this false for good -- the upload then finished silently, never
+  // attached its photos and the button sat on "Uploading... 0%".
   const mountedRef = useRef(true);
   useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
@@ -44,11 +50,11 @@ export default function ImageUploader({ images = [], onChange, folder = 'product
   function addUrl() {
     const url = urlInput.trim();
     if (!url) return;
-    if (!url.startsWith('http')) {
+    if (!/^https?:\/\//i.test(url)) {
       toast.error('Please enter a valid URL starting with http');
       return;
     }
-    onChange([...images, url]);
+    onChange(multiple ? [...images, url] : [url]);
     setUrlInput('');
   }
 
@@ -59,35 +65,32 @@ export default function ImageUploader({ images = [], onChange, folder = 'product
     setUploading(true);
     setProgress(0);
 
-    // Uploaded in parallel (was a sequential for-loop awaiting one file at a time,
-    // which made a 6-photo batch take ~6x one upload's latency for no benefit).
     let doneCount = 0;
-    const results = await Promise.allSettled(files.map(async (file) => {
-      const url = await uploadToStorage(file, folder);
-      doneCount += 1;
-      if (mountedRef.current) setProgress(Math.round((doneCount / files.length) * 100));
-      return url;
-    }));
+    const results = await mapWithConcurrency(files, UPLOAD_CONCURRENCY, async (file) => {
+      try { return await uploadToStorage(file, folder); }
+      finally {
+        doneCount += 1;
+        if (mountedRef.current) setProgress(Math.round((doneCount / files.length) * 100));
+      }
+    });
 
-    // The record this upload was started for is gone (admin switched to editing a
-    // different product/story before it finished) -- drop the results rather than
-    // attach them to whatever record replaced it.
+    // The record this upload was started for is gone (admin switched to a different product/story before it
+    // finished) -- drop the results rather than attach them to whatever record replaced it.
     if (!mountedRef.current) return;
 
     const uploaded = [];
     const failed = [];
     results.forEach((r, i) => {
       if (r.status === 'fulfilled') uploaded.push(r.value);
-      else { failed.push(files[i].name); console.error('Upload failed for', files[i].name, r.reason); }
+      else failed.push({ name: files[i].name, reason: r.reason?.message || 'upload failed' });
     });
 
-    onChange([...imagesRef.current, ...uploaded]);
+    if (uploaded.length) onChange(multiple ? [...imagesRef.current, ...uploaded] : [uploaded[uploaded.length - 1]]);
     setUploading(false);
     setProgress(0);
     e.target.value = '';
-    if (failed.length > 0) {
-      toast.error(failed.length === 1 ? `${failed[0]} failed to upload.` : `${failed.length} photos failed to upload.`);
-    }
+    if (failed.length === 1) toast.error(`${failed[0].name}: ${failed[0].reason}`);
+    else if (failed.length > 1) toast.error(`${failed.length} photos failed to upload (${failed[0].reason}).`);
   }
 
   function removeImage(idx) {
@@ -118,78 +121,48 @@ export default function ImageUploader({ images = [], onChange, folder = 'product
       ]
     : images.map((url, i) => ({ kind: 'image', url, idx: i }));
 
-  const lbl = {
-    fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: 11,
-    letterSpacing: '0.14em', color: 'var(--gd)',
-    textTransform: 'uppercase', display: 'block', marginBottom: 7
-  };
-  // Small square icon buttons overlaid on each thumbnail -- sized close to the
-  // ~36-40px touch-target guideline (were 18x18) rather than a heading-level
-  // <label>, since there's no single control it names (there's a URL field
-  // AND a file input below it) -- referenced instead via aria-label on each
-  // actual input, and via aria-labelledby here for the preview grid as a whole.
-  const iconBtn = {
-    width: 34, height: 34, background: 'rgba(0,0,0,0.75)', border: 'none', color: '#fff',
-    cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
-  };
-
   return (
-    <div>
-      {/* Not a <label htmlFor>, since it doesn't name one single control --
-          the URL field and file input below both get their own aria-label
-          instead. This is a group heading, referenced by the preview grid via
-          aria-labelledby. */}
-      <div id={groupLabelId} style={lbl}>{label}</div>
+    <div className="adm-uploader">
+      {/* Not a <label htmlFor>: it doesn't name one single control -- the URL field and file input below get
+          their own aria-label. This is a group heading, referenced by the preview grid via aria-labelledby. */}
+      <div id={groupLabelId} className="adm-label">{label}</div>
+      {help && <div className="adm-hint">{help}</div>}
 
       {/* PREVIEW GRID -- photos, plus the video tile mixed in at its own position if this product has one */}
       {tiles.length > 0 && (
-        <div role="group" aria-labelledby={groupLabelId} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+        <div role="group" aria-labelledby={groupLabelId} className="adm-uploader-grid">
           {tiles.map((t, pos) => {
             const isFirst = pos === 0;
             if (t.kind === 'video') {
               return (
-                <div key="video" style={{ position: 'relative', width: 108, height: 108, background: '#000' }}>
-                  <video src={t.url} muted preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', border: isFirst ? '2px solid var(--gd)' : '1px solid rgba(33,29,20,0.2)', opacity: 0.85 }} />
-                  <span aria-hidden="true" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="#F2EFE4"><path d="M8 5v14l11-7z" /></svg>
-                  </span>
-                  {isFirst && (
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--gd)', color: 'var(--text-dark)', fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: 10, letterSpacing: '0.1em', textAlign: 'center', padding: '2px 0', textTransform: 'uppercase' }}>Opens First</div>
-                  )}
-                  <div style={{ position: 'absolute', top: 2, right: 2, display: 'flex', gap: 2 }}>
-                    {pos > 0 && <button type="button" onClick={() => moveVideo(-1)} title="Move video left" aria-label="Move video left" style={iconBtn}>←</button>}
-                    {pos < tiles.length - 1 && <button type="button" onClick={() => moveVideo(1)} title="Move video right" aria-label="Move video right" style={iconBtn}>→</button>}
+                <div key="video" className={`adm-tile${isFirst ? ' is-main' : ''}`}>
+                  <video src={t.url} muted preload="metadata" />
+                  <span className="adm-tile-play" aria-hidden="true"><Icon name="play" size={26} filled /></span>
+                  {isFirst && <div className="adm-tile-badge">Opens First</div>}
+                  <div className="adm-tile-actions">
+                    {pos > 0 && <button type="button" className="adm-tile-btn" onClick={() => moveVideo(-1)} title="Move video left" aria-label="Move video left"><Icon name="chevronLeft" size={16} /></button>}
+                    {pos < tiles.length - 1 && <button type="button" className="adm-tile-btn" onClick={() => moveVideo(1)} title="Move video right" aria-label="Move video right"><Icon name="chevronRight" size={16} /></button>}
                   </div>
                 </div>
               );
             }
             const { url, idx } = t;
             return (
-              <div key={idx} style={{ position: 'relative', width: 108, height: 108 }}>
-                <img
-                  src={thumb(url, 216)}
+              <div key={idx} className={`adm-tile${isFirst ? ' is-main' : ''}`}>
+                {/* Resized rendition first, the original file if resizing is unavailable, a placeholder if neither loads. */}
+                <Thumb
+                  src={url} width={216} size="100%" lazy={false}
                   alt={isFirst ? `${label} — image 1 of ${images.length} (main)` : `${label} — image ${idx + 1} of ${images.length}`}
-                  loading="lazy"
-                  decoding="async"
-                  style={{
-                    width: '100%', height: '100%', objectFit: 'cover',
-                    border: isFirst ? '2px solid var(--gd)' : '1px solid rgba(33,29,20,0.2)'
-                  }}
-                  onError={e => { e.target.src = ''; e.target.style.background = '#D3CCB9'; }}
                 />
-                {isFirst && (
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'var(--gd)', color: 'var(--text-dark)', fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: 10, letterSpacing: '0.1em', textAlign: 'center', padding: '2px 0', textTransform: 'uppercase' }}>
-                    {hasVideo ? 'Main Photo' : 'Main'}
-                  </div>
-                )}
-                <div style={{ position: 'absolute', top: 2, right: 2, display: 'flex', gap: 2 }}>
+                {isFirst && <div className="adm-tile-badge">{hasVideo ? 'Main Photo' : 'Main'}</div>}
+                <div className="adm-tile-actions">
                   {idx > 0 && (
-                    <button type="button" onClick={() => moveImage(idx, -1)} title="Move left" aria-label={`Move image ${idx + 1} left`} style={iconBtn}>←</button>
+                    <button type="button" className="adm-tile-btn" onClick={() => moveImage(idx, -1)} title="Move left" aria-label={`Move image ${idx + 1} left`}><Icon name="chevronLeft" size={16} /></button>
                   )}
                   {idx < images.length - 1 && (
-                    <button type="button" onClick={() => moveImage(idx, 1)} title="Move right" aria-label={`Move image ${idx + 1} right`} style={iconBtn}>→</button>
+                    <button type="button" className="adm-tile-btn" onClick={() => moveImage(idx, 1)} title="Move right" aria-label={`Move image ${idx + 1} right`}><Icon name="chevronRight" size={16} /></button>
                   )}
-                  <button type="button" onClick={() => removeImage(idx)} title="Remove" aria-label={`Remove image ${idx + 1}`} style={{ ...iconBtn, background: 'rgba(192,120,64,0.9)', fontSize: 17 }}>×</button>
+                  <button type="button" className="adm-tile-btn danger" onClick={() => removeImage(idx)} title="Remove" aria-label={`Remove image ${idx + 1}`}><Icon name="close" size={16} /></button>
                 </div>
               </div>
             );
@@ -197,79 +170,48 @@ export default function ImageUploader({ images = [], onChange, folder = 'product
         </div>
       )}
       {hasVideo && (
-        <div style={{ fontFamily: "var(--font-body)", fontSize: 13, color: 'var(--iv)', fontStyle: 'normal', marginTop: -6, marginBottom: 14 }}>
-          Use the video tile's ← → arrows to choose where it opens among the photos on the product page.
-        </div>
+        <div className="adm-hint">Use the video tile's arrows to choose where it opens among the photos on the product page.</div>
       )}
 
       {/* MODE TABS */}
-      <div role="tablist" aria-label={`${label} — add photos by`} style={{ display: 'flex', gap: 0, marginBottom: 12 }}>
-        <button
-          type="button" role="tab" aria-selected={mode === 'url'}
-          onClick={() => setMode('url')}
-          style={{ padding: '12px 16px', fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid rgba(33,29,20,0.2)', cursor: 'pointer', transition: 'all 0.2s', background: mode === 'url' ? 'var(--gd)' : 'rgba(30,27,20,0.04)', color: mode === 'url' ? 'var(--br)' : 'var(--iv)' }}
-        >
-          Paste URL
-        </button>
-        <button
-          type="button" role="tab" aria-selected={mode === 'upload'}
-          onClick={() => setMode('upload')}
-          style={{ padding: '12px 16px', fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', border: '1px solid rgba(33,29,20,0.2)', borderLeft: 'none', cursor: 'pointer', transition: 'all 0.2s', background: mode === 'upload' ? 'var(--gd)' : 'rgba(30,27,20,0.04)', color: mode === 'upload' ? 'var(--br)' : 'var(--iv)' }}
-        >
-          Upload File
-        </button>
+      <div role="tablist" aria-label={`${label} — add photos by`} className="adm-uploader-modes">
+        <button type="button" role="tab" aria-selected={mode === 'upload'} onClick={() => setMode('upload')}>Upload file</button>
+        <button type="button" role="tab" aria-selected={mode === 'url'} onClick={() => setMode('url')}>Paste URL</button>
       </div>
 
       {/* PASTE URL MODE */}
       {mode === 'url' && (
         <div role="tabpanel">
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="adm-media-url">
             <input
+              className="adm-input"
               value={urlInput}
               onChange={e => setUrlInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addUrl()}
-              placeholder="Paste an image URL here..."
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addUrl(); } }}
+              placeholder="Paste an image URL here…"
               aria-label={`${label} — image URL`}
               type="url" inputMode="url" enterKeyHint="done" autoCapitalize="none" spellCheck={false}
-              style={{ flex: 1, padding: '10px 12px', background: 'rgba(30,27,20,0.06)', border: '1px solid rgba(33,29,20,0.2)', color: 'var(--iv)', fontFamily: "var(--font-body)", fontSize: 15 }}
-              onFocus={e => e.target.style.borderColor = 'var(--gd)'}
-              onBlur={e => e.target.style.borderColor = 'rgba(33,29,20,0.2)'}
             />
-            <button
-              type="button"
-              onClick={addUrl}
-              style={{ background: 'var(--gd)', border: 'none', color: 'var(--text-dark)', fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '11px 16px', cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              Add
-            </button>
+            <button type="button" className="adm-btn primary" onClick={addUrl}><span className="adm-btn-label">Add</span></button>
           </div>
-          <div style={{ fontFamily: "var(--font-body)", fontSize: 13, color: 'var(--iv)', fontStyle: 'normal', marginTop: 7, lineHeight: 1.6 }}>
-            Paste a link to an image already hosted elsewhere. Press Enter or click Add.
-          </div>
+          <div className="adm-hint" style={{ marginTop: 6 }}>Link to an image already hosted elsewhere. Press Enter or click Add.</div>
         </div>
       )}
 
       {/* UPLOAD MODE */}
       {mode === 'upload' && (
         <div role="tabpanel">
-          {/* accept mirrors supabaseStorage.js's ALLOWED_IMAGE_TYPES -- SVG and
-              anything else is excluded there too (SEC-STOR-2); this is only
-              the file picker's own filter, not the enforcement. */}
-          <input ref={fileRef} type="file" accept={ALLOWED_IMAGE_ACCEPT} multiple={multiple} style={{ display: 'none' }} onChange={handleFileUpload} />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            aria-busy={uploading}
-            style={{ minHeight: 40, background: uploading ? 'rgba(33,29,20,0.4)' : 'rgba(30,27,20,0.08)', border: '1px dashed rgba(33,29,20,0.35)', color: uploading ? 'var(--gd)' : 'var(--iv)', fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '12px 20px', cursor: uploading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}
-          >
-            {uploading ? (
-              <><span aria-hidden="true" style={{ width: 14, height: 14, border: '2px solid rgba(33,29,20,0.3)', borderTopColor: 'var(--gd)', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} /> Uploading... {progress}%</>
-            ) : 'Select Photos to Upload'}
+          {/* accept mirrors supabaseStorage.js's ALLOWED_IMAGE_TYPES -- SVG and anything else is excluded there too
+              (SEC-STOR-2); this is only the file picker's own filter, not the enforcement. */}
+          <input ref={fileRef} type="file" accept={ALLOWED_IMAGE_ACCEPT} multiple={multiple} hidden onChange={handleFileUpload} />
+          <button type="button" className="adm-dropzone" onClick={() => fileRef.current?.click()} disabled={uploading} aria-busy={uploading}>
+            {uploading
+              ? <><span className="adm-spinner" aria-hidden="true" /> Uploading… {progress}%</>
+              : <><Icon name="upload" size={17} /> {multiple ? 'Select photos to upload' : 'Select a photo to upload'}</>}
           </button>
           {uploading && (
-            <div role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} style={{ marginTop: 8, height: 3, background: 'rgba(33,29,20,0.15)', borderRadius: 2, overflow: 'hidden' }}>
-              <div style={{ height: '100%', background: 'var(--gd)', width: `${progress}%`, transition: 'width 0.3s' }} />
+            <div role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} className="adm-progress" style={{ marginTop: 8 }}>
+              <div style={{ width: `${progress}%` }} />
             </div>
           )}
         </div>

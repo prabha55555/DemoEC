@@ -8,7 +8,8 @@ import { thumb } from '../utils/thumbnail';
 // instead of a plain text toast.
 export default function CartToast({ t, product, label }) {
   const navigate = useNavigate();
-  const img = product.images?.[0];
+  const img = product.image;
+  const option = product.variantLabel;
 
   return (
     <div role="status" style={{
@@ -24,12 +25,12 @@ export default function CartToast({ t, product, label }) {
       {img ? (
         <img src={thumb(img, 100)} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--border)', display: 'block', flexShrink: 0 }} />
       ) : (
-        <div style={{ width: 44, height: 44, borderRadius: 4, border: '1px solid var(--border)', background: product.bg || 'var(--bg-hover)', flexShrink: 0 }} />
+        <div style={{ width: 44, height: 44, borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg-hover)', flexShrink: 0 }} />
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 500, fontSize: 11.5, color: 'var(--primary)', marginBottom: 1 }}>{label}</div>
         <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {product.name}{product.size ? ` — ${product.size}` : ''}
+          {product.name}{option ? ` — ${option}` : ''}
         </div>
       </div>
       <button

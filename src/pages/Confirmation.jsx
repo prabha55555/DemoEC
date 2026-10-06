@@ -1,8 +1,12 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { fmt } from '../data/products';
-import { thumb } from '../utils/thumbnail';
+import React, { useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { formatMoney } from '../utils/catalog';
+import { addressLines } from '../utils/orderFormat';
 import { whatsappLink } from '../config/company';
+import { usePageMeta } from '../utils/usePageMeta';
+import OrderItemsList from '../components/OrderItemsList';
+import PriceSummary from '../components/PriceSummary';
 
 // tt_last_order is never cleared after checkout -- a bookmark, the back button,
 // or just typing /confirmation directly could re-show a real order from days
@@ -13,15 +17,36 @@ const RECENT_ORDER_WINDOW_MS = 30 * 60 * 1000;
 
 const ico = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
 
-export default function Confirmation() {
-  const navigate = useNavigate();
+function readRecentOrder() {
   let stored = {};
   try { stored = JSON.parse(localStorage.getItem('tt_last_order') || '{}') || {}; } catch { /* corrupted value -- treated as no recent order */ }
   const isRecent = typeof stored.ts === 'number' && (Date.now() - stored.ts) < RECENT_ORDER_WINDOW_MS;
-  const order = isRecent ? stored : {};
-  const placed = !!order.orderId;
-  const hasItems = !!order.items;
-  const hasAddr = !!order.addr;
+  return isRecent && stored.orderId ? stored : null;
+}
+
+const PAYMENT_NOTE = {
+  online: 'Paid online',
+  cod: 'Cash on Delivery',
+  free: 'Covered by your coupon / gift card',
+};
+
+export default function Confirmation() {
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const order = useMemo(readRecentOrder, []);
+  usePageMeta({ title: order ? 'Order placed' : 'Order confirmation', description: 'Your order confirmation.' });
+
+  const mode = order?.paymentMethod || 'online';
+  const total = Number(order?.total) || 0;
+  const rows = order ? [
+    { key: 'items', label: 'Items total', value: formatMoney(order.subtotal ?? total) },
+    ...(Number(order.discount) > 0 ? [{ key: 'disc', label: order.couponCode ? `Coupon (${order.couponCode})` : 'Discount', value: `− ${formatMoney(order.discount)}`, tone: 'minus' }] : []),
+    ...(order.digital ? [] : [{ key: 'ship', label: 'Delivery', value: Number(order.shipping) > 0 ? formatMoney(order.shipping) : 'Free', tone: Number(order.shipping) > 0 ? undefined : 'free' }]),
+    ...(Number(order.codFee) > 0 ? [{ key: 'cod', label: 'Cash on Delivery fee', value: formatMoney(order.codFee) }] : []),
+    ...(Number(order.giftCard) > 0 ? [{ key: 'gc', label: 'Gift card', value: `− ${formatMoney(order.giftCard)}`, tone: 'minus' }] : []),
+  ] : [];
+  const totalLabel = mode === 'cod' ? 'Amount to pay on delivery' : mode === 'free' ? 'Total' : 'Total paid';
+  const addrText = order?.addr ? addressLines(order.addr) : [];
 
   return (
     <div className="conf-page" style={{ paddingTop: 'var(--hdr-h)', minHeight: '80vh', background: 'var(--bg)' }}>
@@ -29,7 +54,7 @@ export default function Confirmation() {
         <div className="conf-card">
           {/* STATUS */}
           <div className="conf-top">
-            {placed ? (
+            {order ? (
               <div className="conf-check" aria-hidden="true">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
               </div>
@@ -39,89 +64,91 @@ export default function Confirmation() {
               </div>
             )}
 
-            <h1 className="conf-title">{placed ? 'Order placed successfully' : 'Nothing to confirm'}</h1>
+            <h1 className="conf-title">{order ? 'Order placed successfully' : 'Nothing to confirm'}</h1>
             <p className="conf-sub">
-              {placed
-                ? 'Thank you for your order. We will reach out within 24 hours to confirm the details and arrange delivery.'
+              {order
+                ? mode === 'cod'
+                  ? `Thank you for your order. Please keep ${formatMoney(total)} ready — you pay when it is delivered.`
+                  : order.digital
+                    ? 'Thank you for your order. Your gift card is on its way to the email address you gave us.'
+                    : 'Thank you for your order. We will email you as soon as it ships.'
                 : "We don't have a recent order to show here. If you're looking for a past order, check My Orders."}
             </p>
 
-            {placed && (
+            {order && (
               <div className="conf-id">
-                <span>Order ID</span>
+                <span>Order number</span>
                 <strong>{order.orderId}</strong>
               </div>
             )}
           </div>
 
-          {/* ITEMS */}
-          {placed && hasItems && (
-            <section className="conf-sec" aria-label="Items ordered">
-              <h2 className="conf-label">Items ordered</h2>
-              <div className="conf-items">
-                {order.items.map((item, i) => (
-                  <div key={i} className="conf-item">
-                    <div className="conf-item-img" style={{ background: item.bg || 'var(--bg-hover)' }}>
-                      {item.images?.[0] && <img src={thumb(item.images[0], 100)} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                    </div>
-                    <span className="conf-item-name">{item.name}{item.size ? ` — ${item.size}` : ''}</span>
-                    <span className="conf-item-qty">Qty {item.qty}</span>
-                  </div>
-                ))}
-              </div>
-              {typeof order.total === 'number' && (
-                <div className="conf-total">
-                  <span>Total paid</span>
-                  <strong>{fmt(order.total)}</strong>
-                </div>
+          {order && (
+            <>
+              {/* ITEMS */}
+              {Array.isArray(order.items) && order.items.length > 0 && (
+                <section className="conf-sec" aria-label="Items ordered">
+                  <h2 className="conf-label">Items ordered</h2>
+                  <OrderItemsList items={order.items} compact />
+                </section>
               )}
-            </section>
-          )}
 
-          {/* ADDRESS */}
-          {placed && hasAddr && (
-            <section className="conf-sec" aria-label="Delivery address">
-              <h2 className="conf-label">Delivery to</h2>
-              <div className="conf-addr">
-                <strong>{order.addr.name}</strong><br />
-                {order.addr.line1}{order.addr.line2 ? ', ' + order.addr.line2 : ''}<br />
-                {order.addr.city}, {order.addr.state}, {order.addr.pincode}
-              </div>
-            </section>
+              {/* PAYMENT SUMMARY */}
+              <section className="conf-sec" aria-label="Payment summary">
+                <h2 className="conf-label">Payment summary</h2>
+                <span className="conf-paytag">{PAYMENT_NOTE[mode]}</span>
+                <PriceSummary
+                  className="conf-sum"
+                  title="Price details"
+                  rows={rows}
+                  total={{ label: totalLabel, value: formatMoney(total) }}
+                  note={mode === 'cod' ? 'Inclusive of all taxes. Pay the delivery agent when your order arrives.' : 'Inclusive of all taxes'}
+                />
+              </section>
+
+              {/* DELIVERY */}
+              <section className="conf-sec conf-two" aria-label="Delivery details">
+                {!order.digital && addrText.length > 0 && (
+                  <div>
+                    <h2 className="conf-label">Delivering to</h2>
+                    <div className="conf-addr">
+                      {addrText.map((l, i) => (i === 0 ? <strong key={i}>{l}<br /></strong> : <React.Fragment key={i}>{l}<br /></React.Fragment>))}
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <h2 className="conf-label">{order.digital ? 'Delivery' : 'Estimated delivery'}</h2>
+                  <div className="conf-addr">
+                    {order.digital ? 'Emailed to you once your payment is confirmed.' : (order.estimatedDelivery || 'We will email you the delivery date once it ships.')}
+                    {order.email && <><br /><span style={{ color: 'var(--text-muted)' }}>Confirmation sent to {order.email}</span></>}
+                  </div>
+                </div>
+              </section>
+            </>
           )}
 
           {/* ACTIONS */}
           <div className="conf-sec conf-actions">
-            {placed ? (
+            {order ? (
               <>
-                <button className="btn btn-gold" onClick={() => navigate('/account?tab=orders')}>
-                  <svg {...ico}><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7z" /><circle cx="5.5" cy="18.5" r="2" /><circle cx="18.5" cy="18.5" r="2" /></svg>
-                  Track Order
-                </button>
-                <button className="btn btn-outline" onClick={() => navigate('/shop')}>Continue Shopping</button>
-                <a
-                  href={whatsappLink(`Hi, I'd like to confirm my order ${order.orderId}. Could you please share the delivery timeline?`)}
-                  target="_blank" rel="noreferrer"
-                  className="btn btn-wa"
-                  style={{ textDecoration: 'none' }}
-                >
+                {currentUser && (
+                  <button type="button" className="btn btn-gold" onClick={() => navigate(`/account/orders/${encodeURIComponent(order.orderId)}`)}>
+                    <svg {...ico}><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7z" /><circle cx="5.5" cy="18.5" r="2" /><circle cx="18.5" cy="18.5" r="2" /></svg>
+                    View order
+                  </button>
+                )}
+                <button type="button" className={`btn ${currentUser ? 'btn-outline' : 'btn-gold'}`} onClick={() => navigate('/shop')}>Continue shopping</button>
+                <a href={whatsappLink(`Hi, I need help with my order ${order.orderId}.`)} target="_blank" rel="noreferrer" className="btn btn-wa" style={{ textDecoration: 'none' }}>
                   <svg {...ico}><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.7-5.4A8.4 8.4 0 1 1 21 11.5z" /></svg>
-                  Ask on WhatsApp
+                  Need help?
                 </a>
               </>
             ) : (
               <>
-                <button className="btn btn-gold" onClick={() => navigate('/account?tab=orders')}>View My Orders</button>
-                <button className="btn btn-outline" onClick={() => navigate('/shop')}>Continue Shopping</button>
-                <a
-                  href={whatsappLink()}
-                  target="_blank" rel="noreferrer"
-                  className="btn btn-wa"
-                  style={{ textDecoration: 'none' }}
-                >
-                  <svg {...ico}><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.7-5.4A8.4 8.4 0 1 1 21 11.5z" /></svg>
-                  Chat on WhatsApp
-                </a>
+                {currentUser
+                  ? <button type="button" className="btn btn-gold" onClick={() => navigate('/account?tab=orders')}>View my orders</button>
+                  : <Link to="/login" state={{ from: { pathname: '/account', search: '?tab=orders' } }} className="btn btn-gold" style={{ textDecoration: 'none' }}>Sign in to see your orders</Link>}
+                <button type="button" className="btn btn-outline" onClick={() => navigate('/shop')}>Continue shopping</button>
               </>
             )}
           </div>
@@ -142,14 +169,13 @@ export default function Confirmation() {
         .conf-id strong { min-width: 0; font-size: 14px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
 
         .conf-sec { padding: 16px 20px; border-top: 1px solid var(--border); }
-        .conf-label { font-family: var(--font-head); font-size: 14px; font-weight: 500; color: var(--text-muted); margin: 0 0 12px; }
-        .conf-items { display: flex; flex-direction: column; gap: 12px; }
-        .conf-item { display: flex; align-items: center; gap: 12px; }
-        .conf-item-img { width: 48px; height: 48px; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; flex-shrink: 0; }
-        .conf-item-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.4; overflow-wrap: anywhere; }
-        .conf-item-qty { flex-shrink: 0; font-size: 13px; color: var(--text-muted); }
-        .conf-total { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed #C9D3D1; font-size: 15px; font-weight: 600; color: var(--text); }
-        .conf-total strong { font-size: 18px; font-weight: 600; }
+        .conf-label { font-family: var(--font-head); font-size: 14px; font-weight: 500; color: var(--text-muted); margin: 0 0 10px; }
+        .conf-sum.pst { border: none; }
+        .conf-sum .pst-head { display: none; }
+        .conf-sum .pst-body { padding: 0; }
+        .conf-paytag { display: inline-block; margin-bottom: 12px; padding: 3px 10px; border-radius: 999px; background: var(--primary-tint); color: var(--primary-dark); font-size: 12px; font-weight: 600; }
+        .conf-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+        .conf-two > div:only-child { grid-column: 1 / -1; }
         .conf-addr { font-size: 14px; line-height: 1.65; color: var(--text); overflow-wrap: anywhere; }
         .conf-addr strong { font-weight: 500; }
 
@@ -159,6 +185,7 @@ export default function Confirmation() {
           .conf-actions { flex-direction: row; }
           .conf-actions .btn { flex: 1; width: auto; padding-left: 16px; padding-right: 16px; }
         }
+        @media (max-width: 560px) { .conf-two { grid-template-columns: 1fr; } }
         @media (max-width: 520px) {
           .conf-top { padding: 24px 16px 20px; }
           .conf-sec { padding: 14px 16px; }

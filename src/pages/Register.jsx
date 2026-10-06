@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../supabase';
 import toast from 'react-hot-toast';
 import AuthShell, { AuIcon } from '../components/AuthShell';
 
@@ -27,6 +28,10 @@ export default function Register() {
   const [gLoading, setGLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [marketingOptIn, setMarketingOptIn] = useState(false);
+  // Set when the project requires email confirmation: sign-up succeeded but there is no session yet.
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [resendIn, setResendIn] = useState(0);
+  const [resending, setResending] = useState(false);
   const { registerWithEmail, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -37,6 +42,24 @@ export default function Register() {
   // otherwise landing on the plain Dashboard tab after signing in.
   const fromLoc = location.state?.from;
   const from = fromLoc ? `${fromLoc.pathname}${fromLoc.search || ''}` : '/account';
+
+  useEffect(() => {
+    if (resendIn <= 0) return undefined;
+    const t = setTimeout(() => setResendIn(n => n - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
+
+  async function resendConfirmation() {
+    if (resendIn > 0 || resending || !pendingEmail) return;
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({ type: 'signup', email: pendingEmail });
+      if (error) throw error;
+      toast.success('Confirmation email sent again.');
+      setResendIn(30);
+    } catch (err) { toast.error(err.message || 'Could not resend the email. Please try again shortly.'); }
+    finally { setResending(false); }
+  }
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); setErrors(e => ({ ...e, [k]: '' })); }
 
@@ -58,9 +81,16 @@ export default function Register() {
     if (!validate()) return;
     setLoading(true);
     try {
-      await registerWithEmail(form.name, form.email, form.password, form.phone, marketingOptIn);
-      toast.success(`Welcome, ${form.name}!`);
-      navigate(from);
+      const result = await registerWithEmail(form.name.trim(), form.email.trim(), form.password, form.phone, marketingOptIn);
+      if (result?.session) {
+        toast.success(`Welcome, ${form.name.trim()}!`);
+        navigate(from, { replace: true });
+      } else {
+        // "Confirm email" is on: no session until the link in the inbox is opened. Say so instead of
+        // pretending the customer is signed in.
+        setPendingEmail(form.email.trim());
+        setResendIn(30);
+      }
     } catch (err) {
       // Deliberately generic -- confirming "this email already exists" lets an
       // attacker enumerate registered customers one address at a time. Supabase
@@ -81,8 +111,25 @@ export default function Register() {
       return;
     }
     setGLoading(true);
-    try { await loginWithGoogle(); }
+    try { await loginWithGoogle(from); }
     catch (err) { toast.error('Google sign-in failed.'); setGLoading(false); }
+  }
+
+  if (pendingEmail) {
+    return (
+      <AuthShell
+        title="Check your email"
+        subtitle={<>We have sent a confirmation link to <strong>{pendingEmail}</strong>. Open it to activate your account, then sign in.</>}
+        footer={<>Wrong address? <button type="button" className="au-linkbtn" onClick={() => { setPendingEmail(''); setResendIn(0); }}>Start again</button></>}
+        trust="Can't find it? Check your spam or promotions folder."
+      >
+        <div role="status" className="au-ok">Your account is created but not active until the email is confirmed.</div>
+        <Link to="/login" state={location.state} className="btn btn-gold btn-full au-primary">Go to sign in</Link>
+        <button type="button" className="btn btn-outline btn-full au-primary" onClick={resendConfirmation} disabled={resendIn > 0 || resending} style={{ marginTop: 10 }}>
+          {resending ? <span className="spinner" role="status" aria-label="Sending"></span> : resendIn > 0 ? `Resend email (${resendIn}s)` : 'Resend email'}
+        </button>
+      </AuthShell>
+    );
   }
 
   return (

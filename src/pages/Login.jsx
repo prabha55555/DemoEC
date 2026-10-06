@@ -133,7 +133,8 @@ export default function Login() {
 
   async function handleGoogle() {
     setGLoading(true); setError('');
-    try { await loginWithGoogle(); }
+    // `from` rides along so Google sign-in returns the customer to where they were (checkout, a deep link ...)
+    try { await loginWithGoogle(from); }
     catch (err) { setError('Google sign-in failed.'); setGLoading(false); }
   }
 

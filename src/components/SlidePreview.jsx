@@ -1,5 +1,6 @@
 import React from 'react';
 import { thumb } from '../utils/thumbnail';
+import { originalOnError } from '../admin/ui/Thumb';
 import { HERO_CTA_POSITIONS, HERO_HEADLINE_PREVIEW_SIZES, HERO_SUBTEXT_PREVIEW_SIZES } from '../utils/heroCtaPositions';
 
 // Miniature, fixed-size (not clamp()-scaled) rendition of a slide, used in the Admin
@@ -25,7 +26,7 @@ export default function SlidePreview({ slide, width = 220, height = 124, mobile 
   return (
     <div style={{ position: 'relative', width, height, overflow: 'hidden', background: 'var(--bg-hover)', border: '1px solid var(--line)', flexShrink: 0 }}>
       {imgSrc && (
-        <img src={thumb(imgSrc, 400)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: imgFit, objectPosition: imgPosition }} />
+        <img src={thumb(imgSrc, 400)} alt="" onError={originalOnError(imgSrc)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: imgFit, objectPosition: imgPosition }} />
       )}
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(30,27,20,.4) 0%, rgba(30,27,20,.1) 45%, rgba(30,27,20,.45) 100%)' }} />
       {/* Row, not column -- HERO_CTA_POSITIONS assumes justifyContent=horizontal,

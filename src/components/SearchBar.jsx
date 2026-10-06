@@ -1,128 +1,181 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { supabase } from '../supabase';
-import { useBrand } from '../context/BrandContext';
-import { fmt, effectivePrice, isProductSoldOut, startingPrice, effectiveTaxonomy, SEARCHABLE_PRODUCT_FIELDS } from '../data/products';
+import { useCatalog } from '../context/CatalogContext';
+import { fetchProducts, fetchFacets, searchWords } from '../utils/catalogApi';
+import { priceRange, formatMoney } from '../utils/catalog';
+import { readRecentSearches, pushRecentSearch, clearRecentSearches } from '../utils/storefrontStorage';
 import { thumb } from '../utils/thumbnail';
 
-// Header search -- a real input that lives in the marketplace header (desktop: inline in the top
-// row; mobile: its own full-width row under the logo bar). Results are fetched server-side (the
-// header never loads the full catalogue) across the same field set Shop.jsx's own ?search=
-// filter uses, via SEARCHABLE_PRODUCT_FIELDS. Enter / "See all results" hands off to /shop?search=.
-export default function SearchBar({ placeholder = 'Search for products, categories and brands' }) {
+const SUGGEST_COLUMNS = 'id,name,brand,price,price_max,mrp,in_stock,has_variants,images,image_position';
+
+// Wraps the matched words in <mark> so the shopper sees why a suggestion matched.
+function Highlight({ text, words }) {
+  if (!words.length) return text;
+  const re = new RegExp(`(${words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'ig');
+  return text.split(re).map((part, i) => (i % 2 ? <mark key={i}>{part}</mark> : part));
+}
+
+const SearchIcon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.35-4.35" /></svg>;
+const ClockIcon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>;
+const GridIcon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>;
+const TagIcon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8zM7.5 7.5h.01" /></svg>;
+
+// Header search. Typing shows (debounced) suggestions -- matching categories, brands and up to six products with
+// their image and price; Enter or "See all results" opens /shop?q=. Fully keyboard driven (a combobox: arrows move,
+// Enter picks, Escape closes) and it remembers recent searches on this device.
+export default function SearchBar({ placeholder = 'Search for products, brands and more' }) {
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
-  const [results, setResults] = useState([]);
+  const [found, setFound] = useState({ products: [], brands: [], q: '' });
   const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
   const [active, setActive] = useState(-1);
+  const [recent, setRecent] = useState(readRecentSearches);
   const navigate = useNavigate();
   const location = useLocation();
-  const { brand } = useBrand();
+  const { categories, tree } = useCatalog();
   const inputRef = useRef(null);
   const boxRef = useRef(null);
-  const debounceRef = useRef(null);
+  const uid = useId();
+  const listId = `${uid}-list`;
 
-  // Mirror the current /shop?search= term so the box reflects what's being shown;
-  // anywhere else it starts empty.
+  // The box mirrors the search being shown (/shop?q=...); anywhere else it starts empty.
   useEffect(() => {
-    const q = location.pathname === '/shop' ? new URLSearchParams(location.search).get('search') || '' : '';
-    setQuery(q);
+    const onListing = location.pathname === '/shop' || location.pathname.startsWith('/category/');
+    setQuery(onListing ? new URLSearchParams(location.search).get('q') || '' : '');
     setFocused(false);
-    setResults([]);
-    setSearched(false);
+    setActive(-1);
   }, [location.pathname, location.search]);
 
   useEffect(() => {
-    if (!focused) return;
+    if (!focused) return undefined;
     const onDown = (e) => { if (!boxRef.current?.contains(e.target)) setFocused(false); };
     document.addEventListener('mousedown', onDown);
     document.addEventListener('touchstart', onDown, { passive: true });
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('touchstart', onDown); };
   }, [focused]);
 
+  const q = query.trim();
+  const words = useMemo(() => searchWords(q), [q]);
+  const wordsKey = words.join(' ');
+
+  // Debounced lookup. `cancelled` stops an older, slower answer from replacing the one for what is typed now.
   useEffect(() => {
-    clearTimeout(debounceRef.current);
-    const q = query.trim();
-    if (!q) { setResults([]); setSearched(false); setLoading(false); return; }
-    setLoading(true);
-    // Guards against an older, slower request resolving after a newer one --
-    // otherwise retyping quickly could overwrite the results with the stale
-    // query's answer, shown under a search box that had already moved on.
+    if (!wordsKey) { setFound({ products: [], brands: [], q: '' }); setLoading(false); return undefined; }
     let cancelled = false;
-    debounceRef.current = setTimeout(async () => {
-      // PostgREST's query-string filter DSL uses `*` as the ilike wildcard (not SQL's
-      // own `%` -- that's reserved for URL percent-encoding), and the raw filter string
-      // also breaks on commas/parens in the value -- strip those rather than trying to
-      // escape PostgREST's own syntax.
-      const safe = q.replace(/[,()%*]/g, ' ').trim();
-      const orFilter = SEARCHABLE_PRODUCT_FIELDS.map(field => `${field}.ilike.*${safe}*`).join(',');
-      let data = null;
-      try {
-        ({ data } = await supabase.from('products')
-          .select('id,name,images,price,shipping_charge,image_position,enquiry_only,stock,variants')
-          .eq('available', true)
-          .or(orFilter)
-          .limit(6));
-      } catch { /* network-level failure -- fall through so the spinner always clears */ }
+    setLoading(true);
+    const t = setTimeout(async () => {
+      const w = wordsKey.split(' ');
+      const [prod, facets] = await Promise.all([
+        fetchProducts({ words: w, pageSize: 6, sort: 'popular', columns: SUGGEST_COLUMNS }).catch(() => ({ rows: [] })),
+        fetchFacets({ words: w }).catch(() => ({ brands: [] })),
+      ]);
       if (cancelled) return;
-      setResults(data || []);
+      const brands = (facets.brands || []).filter(b => w.some(x => b.name.toLowerCase().includes(x))).slice(0, 3);
+      setFound({ products: prod.rows, brands, q: wordsKey });
       setActive(-1);
       setLoading(false);
-      setSearched(true);
-    }, 300);
-    return () => { cancelled = true; clearTimeout(debounceRef.current); };
-  }, [query]);
+    }, 250);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [wordsKey]);
 
-  function goToProduct(id) {
-    setFocused(false);
-    inputRef.current?.blur();
-    navigate(`/product/${id}`);
-  }
+  // One flat, ordered list of everything selectable -- this is what the arrow keys walk.
+  const items = useMemo(() => {
+    if (!wordsKey) {
+      const cats = (tree.flatMap(r => (r.children.length ? r.children : [r])) || []).slice(0, 6);
+      return [
+        ...recent.map(r => ({ type: 'recent', key: `r:${r}`, label: r, href: `/shop?q=${encodeURIComponent(r)}` })),
+        ...cats.map(c => ({ type: 'category', key: `c:${c.id}`, label: c.name, href: `/category/${c.slug}`, group: 'Popular categories' })),
+      ];
+    }
+    const w = wordsKey.split(' ');
+    const cats = categories.filter(c => w.every(x => c.name.toLowerCase().includes(x))).slice(0, 3).map(c => {
+      const parent = categories.find(p => p.id === c.parent_id);
+      return { type: 'category', key: `c:${c.id}`, label: c.name, meta: parent ? `in ${parent.name}` : 'Category', href: `/category/${c.slug}` };
+    });
+    const brands = found.q === wordsKey ? found.brands.map(b => ({ type: 'brand', key: `b:${b.name}`, label: b.name, meta: `Brand · ${b.count} ${b.count === 1 ? 'product' : 'products'}`, href: `/shop?brand=${encodeURIComponent(b.name)}` })) : [];
+    const prods = found.q === wordsKey ? found.products.map(p => ({ type: 'product', key: `p:${p.id}`, label: p.name, product: p, href: `/product/${p.id}` })) : [];
+    return [...cats, ...brands, ...prods];
+  }, [wordsKey, recent, tree, categories, found]);
 
-  function viewAll() {
-    const q = query.trim();
-    if (!q) return;
-    setFocused(false);
-    inputRef.current?.blur();
-    navigate(`/shop?search=${encodeURIComponent(q)}`);
-  }
-
-  function goCategory(item) {
-    setFocused(false);
-    inputRef.current?.blur();
-    navigate(`/shop?category=${encodeURIComponent(item)}`);
+  function close() { setFocused(false); inputRef.current?.blur(); }
+  function go(href) { close(); navigate(href); }
+  function search(text) {
+    const t = String(text ?? query).trim();
+    if (!t) return;
+    setRecent(pushRecentSearch(t));
+    go(`/shop?q=${encodeURIComponent(t)}`);
   }
 
   function onKeyDown(e) {
-    if (e.key === 'Escape') { setFocused(false); inputRef.current?.blur(); return; }
-    if (!results.length) return;
-    if (e.key === 'ArrowDown') { e.preventDefault(); setActive(i => (i + 1) % results.length); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(i => (i <= 0 ? results.length - 1 : i - 1)); }
+    if (e.key === 'Escape') { close(); return; }
+    if (e.key === 'Tab') { setFocused(false); return; }
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); setFocused(true); setActive(i => (i + 1) % items.length); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(i => (i <= 0 ? items.length - 1 : i - 1)); }
+    else if (e.key === 'Home' && active >= 0) { e.preventDefault(); setActive(0); }
+    else if (e.key === 'End' && active >= 0) { e.preventDefault(); setActive(items.length - 1); }
   }
-
   function onSubmit(e) {
     e.preventDefault();
-    if (active >= 0 && results[active]) goToProduct(results[active].id);
-    else viewAll();
+    const it = items[active];
+    if (it && it.type === 'recent') search(it.label);
+    else if (it) go(it.href);
+    else search();
   }
 
-  const q = query.trim();
-  const groups = effectiveTaxonomy(brand);
-  const suggestions = groups.flatMap(g => g.items).slice(0, 8);
-  const showDrop = focused && (q ? true : suggestions.length > 0);
+  const showDrop = focused && (wordsKey ? true : items.length > 0);
+  const optId = (i) => `${uid}-o${i}`;
+  const grouped = (type) => items.map((it, i) => ({ it, i })).filter(x => x.it.type === type);
+  const row = ({ it, i }) => (
+    <button key={it.key} id={optId(i)} type="button" role="option" aria-selected={i === active} tabIndex={-1}
+      className={`bl-search-item${i === active ? ' is-active' : ''}`}
+      onClick={() => (it.type === 'recent' ? search(it.label) : go(it.href))}>
+      {it.type === 'product' ? (() => {
+        const p = it.product;
+        const r = priceRange(p);
+        return (
+          <>
+            {p.images?.[0] ? <img className="bl-search-thumb" src={thumb(p.images[0], 120)} alt="" width="44" height="44" style={{ objectPosition: p.image_position || '50% 50%' }} /> : <span className="bl-search-thumb" />}
+            <span style={{ minWidth: 0 }}>
+              <span className="bl-search-name" style={{ display: 'block' }}><Highlight text={p.name} words={words} /></span>
+              <span className="bl-search-price">
+                {p.in_stock === false ? <span className="out">Out of stock</span> : r.from !== null && <>
+                  {p.has_variants && r.isRange ? 'from ' : ''}{formatMoney(r.from)}
+                  {r.mrp && <s>{formatMoney(r.mrp)}</s>}
+                  {r.percentOff > 0 && <span className="off">{r.percentOff}% off</span>}
+                </>}
+              </span>
+            </span>
+          </>
+        );
+      })() : (
+        <>
+          {it.type === 'recent' ? ClockIcon : it.type === 'brand' ? TagIcon : it.group ? SearchIcon : GridIcon}
+          <span style={{ minWidth: 0 }}>
+            <span className="bl-search-name"><Highlight text={it.label} words={it.type === 'recent' ? [] : words} /></span>
+            {it.meta && <span className="bl-search-meta" style={{ display: 'block' }}>{it.meta}</span>}
+          </span>
+        </>
+      )}
+    </button>
+  );
 
   return (
     <div className="bl-search" ref={boxRef}>
       <form className="bl-search-form" role="search" onSubmit={onSubmit}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.35-4.35" /></svg>
+        {SearchIcon}
         <input
           ref={inputRef}
           className="bl-search-input"
           type="search"
+          role="combobox"
+          aria-expanded={showDrop}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={showDrop && active >= 0 ? optId(active) : undefined}
           value={query}
-          onChange={e => setQuery(e.target.value)}
-          onFocus={() => setFocused(true)}
+          onChange={e => { setQuery(e.target.value); setFocused(true); }}
+          onFocus={() => { setFocused(true); setRecent(readRecentSearches()); }}
           onKeyDown={onKeyDown}
           placeholder={placeholder}
           aria-label="Search products"
@@ -131,50 +184,41 @@ export default function SearchBar({ placeholder = 'Search for products, categori
         />
         {query && (
           <button type="button" className="bl-search-clear" aria-label="Clear search" onClick={() => { setQuery(''); inputRef.current?.focus(); }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
           </button>
         )}
         <button type="submit" className="bl-search-submit">Search</button>
       </form>
 
-      {showDrop && (
-        <div className="bl-search-drop" role="listbox">
-          {!q ? (
-            <>
-              <div className="bl-search-sugg-title">Browse categories</div>
-              {suggestions.map(item => (
-                <button key={item} type="button" className="bl-search-item" onClick={() => goCategory(item)}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.35-4.35" /></svg>
-                  <span className="bl-search-name">{item}</span>
-                </button>
-              ))}
-            </>
-          ) : loading ? (
-            <div style={{ textAlign: 'center', padding: '22px 0' }}><span className="spinner"></span></div>
-          ) : results.length === 0 ? (
-            searched && <div className="bl-search-empty">No products found for &ldquo;{q}&rdquo;. Try a different keyword.</div>
-          ) : (
-            <>
-              {results.map((p, i) => (
-                <button key={p.id} type="button" role="option" aria-selected={i === active} className={`bl-search-item${i === active ? ' is-active' : ''}`} onClick={() => goToProduct(p.id)}>
-                  {p.images?.[0]
-                    ? <img className="bl-search-thumb" src={thumb(p.images[0], 120)} alt="" style={{ objectPosition: p.image_position || '50% 50%' }} />
-                    : <span className="bl-search-thumb" />}
-                  <span style={{ minWidth: 0 }}>
-                    <div className="bl-search-name">{p.name}</div>
-                    <div className="bl-search-price">
-                      {isProductSoldOut(p) ? <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Currently unavailable</span>
-                        : p.enquiry_only ? <span style={{ fontWeight: 600 }}>Price on request</span>
-                        : <>{Array.isArray(p.variants) && p.variants.length > 0 && !p.price ? 'From ' : ''}{fmt(effectivePrice(startingPrice(p), p.shipping_charge))}</>}
-                    </div>
-                  </span>
-                </button>
-              ))}
-              <button type="button" className="bl-search-all" onClick={viewAll}>See all results for &ldquo;{q}&rdquo;</button>
-            </>
-          )}
-        </div>
-      )}
+      <div id={listId} className="bl-search-drop" role="listbox" aria-label="Search suggestions" hidden={!showDrop}>
+        {showDrop && (!wordsKey ? (
+          <>
+            {recent.length > 0 && (
+              <>
+                <div className="bl-search-sugg-title" role="presentation">Recent searches
+                  <button type="button" className="bl-search-clearall" onClick={() => { clearRecentSearches(); setRecent([]); }}>Clear</button>
+                </div>
+                {grouped('recent').map(row)}
+              </>
+            )}
+            {grouped('category').length > 0 && <div className="bl-search-sugg-title" role="presentation">Popular categories</div>}
+            {grouped('category').map(row)}
+          </>
+        ) : (
+          <>
+            {grouped('category').length > 0 && <div className="bl-search-sugg-title" role="presentation">Categories</div>}
+            {grouped('category').map(row)}
+            {grouped('brand').length > 0 && <div className="bl-search-sugg-title" role="presentation">Brands</div>}
+            {grouped('brand').map(row)}
+            {grouped('product').length > 0 && <div className="bl-search-sugg-title" role="presentation">Products</div>}
+            {grouped('product').map(row)}
+            {loading && !grouped('product').length && <div className="bl-search-empty" role="presentation">Searching…</div>}
+            {!loading && found.q === wordsKey && !items.length && <div className="bl-search-empty" role="presentation">No matches for “{q}”. Try a different word or browse a category.</div>}
+            {!loading && found.q === wordsKey && items.length > 0 && !grouped('product').length && <div className="bl-search-empty" role="presentation">No products match “{q}” yet.</div>}
+            <button type="button" className="bl-search-all" tabIndex={-1} onClick={() => search()}>See all results for “{q}”</button>
+          </>
+        ))}
+      </div>
     </div>
   );
 }

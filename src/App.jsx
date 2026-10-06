@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-do
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { BrandProvider, useBrand } from './context/BrandContext';
+import { CatalogProvider } from './context/CatalogContext';
+import { WishlistProvider } from './context/WishlistContext';
 import { CartProvider } from './context/CartContext';
 import { ProtectedRoute, AdminRoute } from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
@@ -34,6 +36,9 @@ const Contact = lazy(() => import('./pages/AboutContact').then(m => ({ default: 
 const Terms = lazy(() => import('./pages/Terms'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const ShippingPolicy = lazy(() => import('./pages/ShippingPolicy'));
+const ReturnsPolicy = lazy(() => import('./pages/ReturnsPolicy'));
+const OrderDetail = lazy(() => import('./pages/OrderDetail'));
+const Invoice = lazy(() => import('./pages/Invoice'));
 const Stories = lazy(() => import('./pages/Stories'));
 const StoryPage = lazy(() => import('./pages/StoryPage'));
 const Care = lazy(() => import('./pages/Care'));
@@ -86,7 +91,8 @@ function AppLayout({ children }) {
   const { pathname } = useLocation();
   const isAdminPage = pathname.startsWith('/admin');
   // Product/cart/checkout pages carry their own sticky bottom action bar, which the floating chat button would overlap.
-  const hideFloatingChat = /^\/(product|cart|checkout)/.test(pathname);
+  // The account and invoice pages have their own help links, and the button would sit on top of the sidebar's Log out.
+  const hideFloatingChat = /^\/(product|cart|checkout|account|invoice)/.test(pathname);
   return (
     <>
       {/* Off-screen until focused (see .skip-link in globals.css) -- lets a
@@ -160,6 +166,8 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <BrandProvider>
+          <CatalogProvider>
+          <WishlistProvider>
           <CartProvider>
             <SplashScreen />
             <ScrollProgress />
@@ -182,6 +190,7 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/shop" element={<Shop />} />
+                <Route path="/category/:slug" element={<Shop />} />
                 <Route path="/gift-card" element={<GiftCard />} />
                 <Route path="/product/:id" element={<ProductPage />} />
                 <Route path="/about" element={<About />} />
@@ -196,16 +205,21 @@ export default function App() {
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/confirmation" element={<Confirmation />} />
                 <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+                <Route path="/account/orders/:orderId" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
+                <Route path="/invoice/:orderId" element={<ProtectedRoute><Invoice /></ProtectedRoute>} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/shipping-policy" element={<ShippingPolicy />} />
+                <Route path="/returns-policy" element={<ReturnsPolicy />} />
                 <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+                <Route path="/admin/*" element={<AdminRoute><Admin /></AdminRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               </Suspense>
             </AppLayout>
           </CartProvider>
+          </WishlistProvider>
+          </CatalogProvider>
         </BrandProvider>
       </AuthProvider>
     </BrowserRouter>

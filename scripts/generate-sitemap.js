@@ -1,14 +1,15 @@
 // Runs as a "prebuild" hook (see package.json) -- writes public/sitemap.xml
 // as a plain static file before react-scripts build runs, so it's just
 // another file CRA copies into the final build, no server-side rendering or
-// new serverless function involved. Queries the same public `products` table
-// every shop/product page already reads from (no anon SELECT restriction).
+// new serverless function involved. Queries the same public tables every
+// shop page already reads (products, categories, stories -- RLS only ever
+// returns active products, active categories and published articles).
 //
 // Deliberately never throws/exits non-zero -- a Supabase hiccup during a
 // build must not be able to abort the whole deployment. On any fetch
-// failure this falls back to writing the static routes alone and logs a
-// warning, rather than failing the build or leaving a stale sitemap in
-// place from a previous run.
+// failure this falls back to writing the static routes alone (and whatever
+// was fetched before the failure) and logs a warning, rather than failing
+// the build or leaving a stale sitemap in place from a previous run.
 const fs = require('fs');
 const path = require('path');
 
@@ -33,8 +34,23 @@ function loadLocalEnvFallback() {
   }
 }
 
-const SITE_URL = 'https://www.brightlightsolutions.in';
-const STATIC_ROUTES = ['/', '/shop', '/insights', '/help', '/about', '/contact', '/gift-card'];
+// The site address lives in src/config/company.js (an ES module, which this CommonJS script cannot import), so the
+// one line is read from the file instead of being repeated here.
+function siteUrl() {
+  try {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'config', 'company.js'), 'utf8');
+    const m = src.match(/website:\s*['"]([^'"]+)['"]/);
+    if (m) return m[1].replace(/\/+$/, '');
+  } catch { /* fall through */ }
+  console.warn('generate-sitemap: could not read COMPANY.website from src/config/company.js.');
+  return '';
+}
+
+const STATIC_ROUTES = [
+  '/', '/shop', '/gift-card', '/insights', '/help', '/about', '/contact',
+  '/shipping-policy', '/returns-policy', '/terms', '/privacy-policy',
+];
+const PAGE = 500;   // under PostgREST's default 1000-row response cap, so every request is a full page
 
 function escapeXml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -45,27 +61,41 @@ function buildXml(urls) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
 }
 
+// Every row of a table, one page at a time (a single request silently stops at 1000 rows).
+async function fetchAll(base, headers, table, query) {
+  const rows = [];
+  for (let offset = 0; ; offset += PAGE) {
+    const res = await fetch(`${base}/rest/v1/${table}?${query}&limit=${PAGE}&offset=${offset}`, { headers });
+    if (!res.ok) throw new Error(`${table} fetch returned ${res.status}`);
+    const page = await res.json();
+    rows.push(...page);
+    if (page.length < PAGE) return rows;
+  }
+}
+
+const day = (v) => (v ? String(v).slice(0, 10) : undefined);
+
 async function main() {
   loadLocalEnvFallback();
+  const SITE_URL = siteUrl();
   const urls = STATIC_ROUTES.map(r => ({ loc: `${SITE_URL}${r}` }));
 
   const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
   const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
   if (supabaseUrl && anonKey) {
-    try {
-      const res = await fetch(`${supabaseUrl}/rest/v1/products?select=id,updated_at&available=eq.true`, {
-        headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
-      });
-      if (res.ok) {
-        const rows = await res.json();
-        for (const p of rows) {
-          urls.push({ loc: `${SITE_URL}/product/${p.id}`, lastmod: p.updated_at ? p.updated_at.slice(0, 10) : undefined });
-        }
-      } else {
-        console.warn(`generate-sitemap: products fetch returned ${res.status}, writing static routes only.`);
+    const headers = { apikey: anonKey, Authorization: `Bearer ${anonKey}` };
+    const sources = [
+      ['categories', 'select=slug,updated_at&active=eq.true&order=sort_order.asc,name.asc', r => ({ loc: `${SITE_URL}/category/${encodeURIComponent(r.slug)}`, lastmod: day(r.updated_at) })],
+      ['products', 'select=id,updated_at&status=eq.active&order=id.asc', r => ({ loc: `${SITE_URL}/product/${r.id}`, lastmod: day(r.updated_at) })],
+      ['stories', 'select=id,created_at&published=eq.true&order=created_at.desc', r => ({ loc: `${SITE_URL}/insights/${r.id}`, lastmod: day(r.created_at) })],
+    ];
+    for (const [table, query, toUrl] of sources) {
+      try {
+        const rows = await fetchAll(supabaseUrl, headers, table, query);
+        rows.filter(r => r.slug !== '' && r.id !== '').forEach(r => urls.push(toUrl(r)));
+      } catch (err) {
+        console.warn(`generate-sitemap: could not fetch ${table}, skipping them.`, err.message);
       }
-    } catch (err) {
-      console.warn('generate-sitemap: could not fetch products, writing static routes only.', err.message);
     }
   } else {
     console.warn('generate-sitemap: Supabase env vars not available, writing static routes only.');

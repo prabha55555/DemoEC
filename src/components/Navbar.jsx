@@ -2,33 +2,35 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCartData } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import { useBrand } from '../context/BrandContext';
-import { COLLECTOR_LABEL, COMING_SOON_CATEGORIES, effectiveTaxonomy } from '../data/products';
+import { useCatalog } from '../context/CatalogContext';
 import { COMPANY } from '../config/company';
 import { thumb } from '../utils/thumbnail';
+import { DEALS_PATH } from '../utils/shopQuery';
 import markImg from '../assets/brightlight-mark.png';
 import SearchBar from './SearchBar';
 
-// Kept in the same order Account.jsx's own sidebar/pill-strip uses (Account.jsx's
-// NAV_ITEMS) so a signed-in customer finds every tab from the header itself.
+// The signed-in customer's account links, in the order of the account page's own menu (the tab keys Account.jsx
+// reads from ?tab=; it accepts `support` as well as the old `enquiries`).
 const ACCOUNT_MENU_ITEMS = [
-  { label: 'Dashboard', tab: null },
+  { label: 'My account', tab: null },
   { label: 'Orders', tab: 'orders' },
   { label: 'Wishlist', tab: 'wishlist' },
-  { label: 'Gift Cards', tab: 'giftcards' },
-  { label: 'Coupons', tab: 'coupons' },
-  { label: 'Enquiries', tab: 'enquiries' },
-  { label: 'Notifications', tab: 'notifications' },
   { label: 'Addresses', tab: 'addresses' },
-  { label: 'Account Details', tab: 'details' },
+  { label: 'Coupons', tab: 'coupons' },
+  { label: 'Gift cards', tab: 'giftcards' },
+  { label: 'Notifications', tab: 'notifications' },
+  { label: 'Support', tab: 'support' },
+  { label: 'Account details', tab: 'details' },
 ];
 
-// Informational pages -- shown in the desktop category bar's right side and the mobile drawer.
+// Informational pages -- shown in the mobile drawer.
 const INFO_LINKS = [
-  { label: 'About', path: '/about' },
+  { label: 'About us', path: '/about' },
   { label: 'Blog', path: '/insights' },
   { label: 'Help Centre', path: '/help' },
-  { label: 'Contact', path: '/contact' },
+  { label: 'Contact us', path: '/contact' },
 ];
 
 const Icon = {
@@ -40,6 +42,7 @@ const Icon = {
   grid: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5" /><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5" /><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5" /><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5" /></svg>,
   chev: <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>,
   close: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>,
+  tag: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8zM7.5 7.5h.01" /></svg>,
   phone: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z" /></svg>,
 };
 
@@ -60,27 +63,31 @@ function Logo({ brand, onClick }) {
   );
 }
 
+const countLabel = (n, one) => (n > 0 ? `, ${n} ${one}${n === 1 ? '' : 's'}` : '');
+
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [openDd, setOpenDd] = useState(null);          // desktop: group label | 'account'
+  const [openDd, setOpenDd] = useState(null);          // desktop: 'all' | 'account'
   const [openMobileGroup, setOpenMobileGroup] = useState(null);
   const { currentUser, logout } = useAuth();
   const { cartCount } = useCartData();
+  const { count: wishCount } = useWishlist();
   const { brand } = useBrand();
+  const { tree } = useCatalog();
   const navigate = useNavigate();
   const location = useLocation();
   const hamburgerRef = useRef(null);
+  const drawerRef = useRef(null);
   const ddCloseTimer = useRef(null);
-  const groups = effectiveTaxonomy(brand);
-  const comingSoonCats = Array.isArray(brand.coming_soon_categories) ? brand.coming_soon_categories : COMING_SOON_CATEGORIES;
 
   useEffect(() => { setMenuOpen(false); setOpenDd(null); setOpenMobileGroup(null); }, [location.pathname, location.search]);
 
-  // Lock page scroll while the mobile drawer is open.
+  // Mobile drawer: scroll locked, focus moves in, and Escape / a tap on the dim area close it.
   useEffect(() => {
     if (!menuOpen) return undefined;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    drawerRef.current?.querySelector('a, button')?.focus();
     return () => { document.body.style.overflow = prev; };
   }, [menuOpen]);
 
@@ -106,6 +113,7 @@ export default function Navbar() {
   const hoverClose = () => { clearTimeout(ddCloseTimer.current); ddCloseTimer.current = setTimeout(() => setOpenDd(null), 140); };
   const toggleMobileGroup = (name) => setOpenMobileGroup(p => (p === name ? null : name));
   const path = location.pathname;
+  const onWishlist = path === '/account' && location.search.includes('wishlist');
 
   return (
     <>
@@ -125,9 +133,12 @@ export default function Navbar() {
               <Link to="/contact" className="bl-toplink">Contact Us</Link>
               <Link to="/help" className="bl-toplink">Help Centre</Link>
             </div>
-            <button type="button" className="bl-act bl-act-hide-sm" onClick={() => navigate('/account?tab=wishlist')} aria-label="Wishlist">
-              {Icon.heart}<span className="bl-act-label">Wishlist</span>
-            </button>
+            {/* A guest who taps Wishlist is sent to sign in and brought back (ProtectedRoute keeps the destination). */}
+            <Link to="/account?tab=wishlist" className="bl-act bl-act-hide-sm" aria-label={`Wishlist${countLabel(wishCount, 'item')}`}>
+              {Icon.heart}
+              {wishCount > 0 && <span className="bl-act-badge">{wishCount}</span>}
+              <span className="bl-act-label">Wishlist</span>
+            </Link>
 
             {/* Desktop account — dropdown when signed in, straight to login otherwise */}
             <div className="bl-dd-zone bl-act-desktop" style={{ position: 'relative' }}>
@@ -136,32 +147,34 @@ export default function Navbar() {
                 className="bl-act"
                 onClick={e => { e.stopPropagation(); currentUser ? setOpenDd(o => (o === 'account' ? null : 'account')) : navigate('/login'); }}
                 aria-label={currentUser ? 'Account menu' : 'Sign in'}
-                aria-expanded={openDd === 'account'}
+                aria-expanded={currentUser ? openDd === 'account' : undefined}
                 aria-haspopup={currentUser ? 'true' : undefined}
               >
                 {Icon.user}<span className="bl-act-label">{currentUser ? 'Account' : 'Sign in'}</span>
               </button>
               {openDd === 'account' && currentUser && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: '#fff', border: '1px solid var(--line)', borderRadius: 12, minWidth: 220, boxShadow: 'var(--shadow-lg)', animation: 'fadeIn .15s ease', zIndex: 1200, overflow: 'hidden' }}>
+                <div className="bl-acct-menu">
                   {ACCOUNT_MENU_ITEMS.map(({ label, tab }) => (
-                    <Link key={tab || 'dashboard'} to={tab ? `/account?tab=${tab}` : '/account'} className="bl-drawer-link" style={{ padding: '11px 16px', fontSize: 14 }}>{label}</Link>
+                    <Link key={tab || 'dashboard'} to={tab ? `/account?tab=${tab}` : '/account'} className="bl-drawer-link" style={{ padding: '11px 16px', fontSize: 14 }}>
+                      {label}{tab === 'wishlist' && wishCount > 0 && <span className="bl-chip grey">{wishCount}</span>}
+                    </Link>
                   ))}
                   <button type="button" className="bl-drawer-link" style={{ padding: '11px 16px', fontSize: 14, color: 'var(--error)', borderBottom: 'none' }} onClick={async () => { await logout(); navigate('/'); }}>Log out</button>
                 </div>
               )}
             </div>
 
-            <button type="button" className="bl-act" onClick={() => navigate('/cart')} aria-label={`Cart${cartCount > 0 ? `, ${cartCount} item${cartCount === 1 ? '' : 's'}` : ''}`}>
+            <Link to="/cart" className="bl-act" aria-label={`Cart${countLabel(cartCount, 'item')}`}>
               {Icon.cart}
               {cartCount > 0 && <span className="bl-act-badge">{cartCount}</span>}
               <span className="bl-act-label">Cart</span>
-            </button>
+            </Link>
           </nav>
         </div>
 
         {/* ROW 2 (mobile) — search */}
         <div className="bl-header-row2">
-          <SearchBar placeholder="Search products & categories" />
+          <SearchBar placeholder="Search for products, brands and more" />
         </div>
 
         {/* CATEGORY BAR (desktop) */}
@@ -179,27 +192,19 @@ export default function Navbar() {
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
               All Categories{Icon.chev}
             </button>
-            <Link to="/shop" className="bl-catlink" onMouseEnter={() => setOpenDd(null)}>Shop All</Link>
-            {groups.slice(0, 6).map(group => (
-              <Link key={group.label} to={`/shop?group=${encodeURIComponent(group.label)}`} className="bl-catlink" onMouseEnter={() => setOpenDd(null)}>{group.label}</Link>
+            <Link to={DEALS_PATH} className="bl-catlink is-accent" onMouseEnter={() => setOpenDd(null)}>{Icon.tag}Deals</Link>
+            {tree.slice(0, 7).map(root => (
+              <Link key={root.id} to={`/category/${root.slug}`} className="bl-catlink" onMouseEnter={() => setOpenDd(null)}>{root.name}</Link>
             ))}
-            <Link to={`/shop?collection=${encodeURIComponent(COLLECTOR_LABEL)}`} className="bl-catlink is-accent" onMouseEnter={() => setOpenDd(null)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.9L22 10l-5.5 4.8L18.2 22 12 18.3 5.8 22l1.7-7.2L2 10l7.1-1.1z" /></svg>
-              {COLLECTOR_LABEL}
-            </Link>
           </div>
 
           {openDd === 'all' && (
-            <div className="bl-mega" role="menu">
+            <div className="bl-mega">
               <div className="bl-mega-inner">
-                {groups.map(group => (
-                  <div key={group.label}>
-                    <Link to={`/shop?group=${encodeURIComponent(group.label)}`} className="bl-mega-title">{group.label}</Link>
-                    {group.items.map(item => comingSoonCats.includes(item) ? (
-                      <span key={item} className="bl-mega-link" style={{ opacity: .5, cursor: 'default' }}>{item} <span className="bl-chip grey" style={{ marginLeft: 6 }}>Soon</span></span>
-                    ) : (
-                      <Link key={item} to={`/shop?category=${encodeURIComponent(item)}`} className="bl-mega-link" role="menuitem">{item}</Link>
-                    ))}
+                {tree.map(root => (
+                  <div key={root.id}>
+                    <Link to={`/category/${root.slug}`} className="bl-mega-title">{root.name}</Link>
+                    {root.children.map(c => <Link key={c.id} to={`/category/${c.slug}`} className="bl-mega-link">{c.name}</Link>)}
                   </div>
                 ))}
               </div>
@@ -210,7 +215,7 @@ export default function Navbar() {
 
       {/* MOBILE DRAWER */}
       <div className={`bl-drawer-scrim${menuOpen ? ' is-open' : ''}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
-      <aside id="bl-drawer" className={`bl-drawer${menuOpen ? ' is-open' : ''}`} aria-hidden={!menuOpen} aria-label="Menu">
+      <aside id="bl-drawer" ref={drawerRef} className={`bl-drawer${menuOpen ? ' is-open' : ''}`} aria-hidden={!menuOpen} aria-label="Menu">
         <div className="bl-drawer-head">
           <img src={brand.logo_url ? thumb(brand.logo_url, 200) : markImg} alt="" style={{ height: 40, width: 'auto', background: '#fff', borderRadius: 10, padding: 4 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -222,7 +227,7 @@ export default function Navbar() {
             ) : (
               <>
                 <div style={{ fontFamily: 'var(--font-head)', fontWeight: 600, fontSize: 17 }}>{brand.brand_name || COMPANY.name}</div>
-                <Link to="/login" style={{ fontSize: 13, color: 'var(--brand-light)', fontWeight: 600 }}>Sign in / Register</Link>
+                <Link to="/login" style={{ fontSize: 13, color: 'var(--sun)', fontWeight: 600 }}>Sign in / Register</Link>
               </>
             )}
           </div>
@@ -231,56 +236,56 @@ export default function Navbar() {
 
         <div className="bl-drawer-body">
           <Link to="/" className="bl-drawer-link">Home</Link>
+          <Link to={DEALS_PATH} className="bl-drawer-link" style={{ color: 'var(--primary)', fontWeight: 700 }}>Deals</Link>
 
           <button type="button" className="bl-drawer-link" onClick={() => toggleMobileGroup('shop')} aria-expanded={openMobileGroup === 'shop'}>
-            <span>Shop by Category</span>
+            <span>Shop by category</span>
             <span style={{ transform: openMobileGroup === 'shop' ? 'rotate(180deg)' : 'none', transition: 'transform .2s', display: 'flex' }}>{Icon.chev}</span>
           </button>
           {openMobileGroup === 'shop' && (
             <div className="bl-drawer-sub">
-              <Link to="/shop" className="bl-drawer-link">All Products</Link>
-              {groups.map(group => (
-                <div key={group.label}>
-                  <Link to={`/shop?group=${encodeURIComponent(group.label)}`} className="bl-drawer-link" style={{ fontWeight: 600, color: 'var(--text)' }}>{group.label}</Link>
-                  {group.items.map(item => comingSoonCats.includes(item) ? (
-                    <div key={item} className="bl-drawer-link is-lvl2" style={{ opacity: .55 }}>{item}<span className="bl-chip grey">Coming soon</span></div>
-                  ) : (
-                    <Link key={item} to={`/shop?category=${encodeURIComponent(item)}`} className="bl-drawer-link is-lvl2">{item}</Link>
-                  ))}
+              <Link to="/shop" className="bl-drawer-link">All products</Link>
+              {tree.map(root => (
+                <div key={root.id}>
+                  <Link to={`/category/${root.slug}`} className="bl-drawer-link" style={{ fontWeight: 600, color: 'var(--text)' }}>{root.name}</Link>
+                  {root.children.map(c => <Link key={c.id} to={`/category/${c.slug}`} className="bl-drawer-link is-lvl2">{c.name}</Link>)}
                 </div>
               ))}
             </div>
           )}
 
-          <Link to={`/shop?collection=${encodeURIComponent(COLLECTOR_LABEL)}`} className="bl-drawer-link" style={{ color: 'var(--gold)', fontWeight: 700 }}>{COLLECTOR_LABEL}</Link>
-          <Link to="/gift-card" className="bl-drawer-link">Gift Cards</Link>
+          <Link to="/gift-card" className="bl-drawer-link">Gift cards</Link>
 
           <div className="bl-drawer-label">Company</div>
           {INFO_LINKS.map(l => <Link key={l.path} to={l.path} className="bl-drawer-link">{l.label}</Link>)}
 
-          <div className="bl-drawer-label">My Account</div>
-          <Link to={currentUser ? '/account' : '/login'} className="bl-drawer-link">{currentUser ? 'My Account' : 'Sign In'}</Link>
-          <Link to="/account?tab=orders" className="bl-drawer-link">My Orders</Link>
-          <Link to="/account?tab=wishlist" className="bl-drawer-link">Wishlist</Link>
+          <div className="bl-drawer-label">My account</div>
+          <Link to={currentUser ? '/account' : '/login'} className="bl-drawer-link">{currentUser ? 'My account' : 'Sign in'}</Link>
+          <Link to="/account?tab=orders" className="bl-drawer-link">My orders</Link>
+          <Link to="/account?tab=wishlist" className="bl-drawer-link">{`Wishlist${wishCount > 0 ? ` (${wishCount})` : ''}`}</Link>
+          <Link to="/account?tab=support" className="bl-drawer-link">Support</Link>
           <Link to="/cart" className="bl-drawer-link">{`Cart (${cartCount})`}</Link>
           {currentUser && (
             <button type="button" className="bl-drawer-link" style={{ color: 'var(--error)' }} onClick={() => { logout(); navigate('/'); }}>Log out</button>
           )}
 
-          <a href={`tel:${COMPANY.phoneTel}`} className="btn btn-outline" style={{ margin: '18px 18px 0', width: 'calc(100% - 36px)' }}>{Icon.phone} Call {COMPANY.phoneDisplay}</a>
+          <a href={`tel:${COMPANY.phoneTel}`} className="btn btn-outline" style={{ margin: '18px 18px 0', width: 'calc(100% - 36px)' }}>{Icon.phone} Call {brand.support_phone || COMPANY.phoneDisplay}</a>
         </div>
       </aside>
 
-      {/* MOBILE BOTTOM TAB BAR -- floating, with a raised Cart button in the centre */}
+      {/* MOBILE BOTTOM TAB BAR */}
       <nav className="bl-bottom-nav" aria-label="Primary">
-        <Link to="/" className={`bl-bn-item${path === '/' ? ' is-active' : ''}`}>{Icon.home}<span>Home</span></Link>
-        <Link to="/shop" className={`bl-bn-item${path.startsWith('/shop') ? ' is-active' : ''}`}>{Icon.grid}<span>Shop</span></Link>
-        <Link to="/cart" className="bl-bn-item is-cart" aria-label={`Cart${cartCount > 0 ? `, ${cartCount} item${cartCount === 1 ? '' : 's'}` : ''}`}>
-          <span className="bl-bn-fab">{Icon.cart}</span>
+        <Link to="/" className={`bl-bn-item${path === '/' ? ' is-active' : ''}`} aria-current={path === '/' ? 'page' : undefined}>{Icon.home}<span>Home</span></Link>
+        <Link to="/shop" className={`bl-bn-item${path.startsWith('/shop') || path.startsWith('/category') ? ' is-active' : ''}`}>{Icon.grid}<span>Shop</span></Link>
+        <Link to="/cart" className={`bl-bn-item${path === '/cart' ? ' is-active' : ''}`} aria-label={`Cart${countLabel(cartCount, 'item')}`}>
+          {Icon.cart}<span>Cart</span>
           {cartCount > 0 && <span className="bl-bn-badge">{cartCount}</span>}
         </Link>
-        <Link to="/account?tab=wishlist" className={`bl-bn-item${path === '/account' && location.search.includes('wishlist') ? ' is-active' : ''}`}>{Icon.heart}<span>Wishlist</span></Link>
-        <Link to={currentUser ? '/account' : '/login'} className={`bl-bn-item${(path === '/account' && !location.search.includes('wishlist')) || path === '/login' || path === '/register' ? ' is-active' : ''}`}>{Icon.user}<span>{currentUser ? 'Account' : 'Sign in'}</span></Link>
+        <Link to="/account?tab=wishlist" className={`bl-bn-item${onWishlist ? ' is-active' : ''}`} aria-label={`Wishlist${countLabel(wishCount, 'item')}`}>
+          {Icon.heart}<span>Wishlist</span>
+          {wishCount > 0 && <span className="bl-bn-badge">{wishCount}</span>}
+        </Link>
+        <Link to={currentUser ? '/account' : '/login'} className={`bl-bn-item${(path === '/account' && !onWishlist) || path === '/login' || path === '/register' ? ' is-active' : ''}`}>{Icon.user}<span>{currentUser ? 'Account' : 'Sign in'}</span></Link>
       </nav>
 
       <style>{`
@@ -295,7 +300,11 @@ export default function Navbar() {
         }
         /* mobile: keep wishlist reachable from the header too */
         @media (max-width: 899px) { .bl-act-hide-sm { display: flex; min-width: 44px; } .bl-act { min-width: 44px; } .bl-actions { margin-left: auto; } }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+        .bl-acct-menu { position: absolute; top: calc(100% + 6px); right: 0; background: #fff; border: 1px solid var(--line); border-radius: 12px; min-width: 220px; box-shadow: var(--shadow-lg); animation: fadeIn .15s ease; z-index: 1200; overflow: hidden; }
+        .bl-act-label { white-space: nowrap; }
+        .bl-catlink svg { flex-shrink: 0; }
+        /* the account menu / drawer links carry a small count chip on the right */
+        .bl-drawer-link .bl-chip { margin-left: 8px; }
       `}</style>
     </>
   );

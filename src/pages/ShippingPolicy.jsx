@@ -1,49 +1,93 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { useBrand } from '../context/BrandContext';
 import { COMPANY } from '../config/company';
+import { shippingPromise } from '../utils/storeCopy';
+import { deliveryFeeText, codText, metroCities } from '../utils/policyCopy';
 import { usePageMeta } from '../utils/usePageMeta';
 import { LegalLayout, LegalSection, LegalCallout } from '../components/LegalLayout';
 
 const N = COMPANY.name;
 
-const SUMMARY = [
-  { label: 'Processing time', value: '2–3 business days' },
-  { label: 'Domestic delivery', value: '5–10 business days' },
-  { label: 'International delivery', value: '15–25 business days' },
-  { label: 'Domestic shipping', value: 'Based on delivery pincode' },
-];
-
-const SECTIONS = [
-  { title: '1. Packaging', body: 'Each item is individually wrapped and packed in protective materials suited to its size, material and fragility. Smaller items are securely packed in corrugated boxes, while larger, heavier or more delicate items are given additional protection during transit.' },
-  { title: '2. Domestic Shipping', body: 'We ship across all states in India via trusted courier partners. Standard delivery takes 5–10 business days from dispatch. Remote areas may take longer. A tracking number will be shared via WhatsApp once your order is dispatched.' },
-  { title: '3. International Shipping', body: 'We ship globally. International orders may be subject to customs duties and import taxes levied by the destination country. These are borne entirely by the buyer. Delivery typically takes 30–40 business days via freight upon dispatch, depending on the destination.' },
-  { title: '4. Shipping Charges', body: 'Domestic shipping charges within India are based on the delivery pincode. Where an item requires additional freight or handling, that cost is already built into the listed price, so you will never see a separate shipping charge added at checkout. International orders are quoted individually based on weight and destination and confirmed with you directly before your order is placed.' },
-  { title: '5. Tracking', body: "You will receive a WhatsApp message with tracking details once your order is dispatched. You can track your shipment directly on the courier partner's website using the provided tracking number." },
-  { title: '6. Delays', body: `${N} is not responsible for delays caused by courier partners, natural events, strikes, or customs clearance. We will assist you in following up with the courier if your shipment is delayed beyond the estimated delivery date.` },
-  { title: '7. Lost or Stolen Shipments', body: `If your tracking shows delivery but you have not received the item, please contact us within 24 hours. We will initiate an investigation with the courier. ${N} is not liable for shipments stolen after confirmed delivery.` },
-];
-
-const slug = (t) => 'shipping-' + t.split('.')[0];
-const TOC = SECTIONS.map(({ title }) => ({ id: slug(title), title }));
-
-// One icon per summary tile (same order as SUMMARY).
+// One icon per summary tile (same order as the tiles below).
 const SUMMARY_ICONS = [
-  <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.2 2" /></>,
   <><path d="M3 7.5h11v8.5H3zM14 10.5h4l3 3v2.5h-7z" /><circle cx="7.5" cy="17.5" r="1.8" /><circle cx="17" cy="17.5" r="1.8" /></>,
-  <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.6 2.6 3.9 5.6 3.9 9s-1.3 6.4-3.9 9c-2.6-2.6-3.9-5.6-3.9-9S9.4 5.6 12 3z" /></>,
+  <><path d="M21 8l-9-5-9 5v8l9 5 9-5z" /><path d="M3 8l9 5 9-5M12 13v8" /></>,
+  <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.2 2" /></>,
   <><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" /><circle cx="12" cy="10" r="2.4" /></>,
 ];
 
 export default function ShippingPolicy() {
+  const { brand } = useBrand();
   usePageMeta({
     title: 'Shipping Policy',
-    description: `Shipping, delivery and tracking information for orders placed with ${N}.`,
+    description: `Delivery charges, delivery times, tracking and Cash on Delivery for orders placed with ${N}.`,
     path: '/shipping-policy',
   });
 
-  // Key facts: a flat row of bordered boxes between the title bar and the policy text.
+  const metros = useMemo(() => metroCities(brand), [brand]);
+  const extraDays = Number(brand.delivery_extra_days) || 0;
+  const cod = codText(brand);
+  const email = brand.support_email || COMPANY.email;
+  const phone = brand.support_phone || COMPANY.phoneDisplay;
+
+  const sections = useMemo(() => [
+    {
+      id: 'areas', title: '1. Where we deliver',
+      body: [
+        'We deliver to serviceable PIN codes across India. We do not ship outside India at the moment.',
+        'Enter your PIN code on any product page to check delivery and the estimated date before you order.',
+      ],
+    },
+    {
+      id: 'charges', title: '2. Delivery charges',
+      body: [
+        deliveryFeeText(brand),
+        ...(metros.length ? [`Metro cities for delivery fees and timelines: ${metros.join(', ')}.`] : []),
+        'Gift cards are digital and carry no delivery fee. Any delivery fee is shown at checkout, before you pay, and is never hidden in the price of a product.',
+      ],
+    },
+    {
+      id: 'time', title: '3. Delivery time',
+      body: [
+        'Each product page shows an estimated delivery date for your PIN code. Estimates are counted in business days (Monday to Friday) from the day your order is dispatched.',
+        ...(extraDays > 0 ? [`Locations outside the metro cities usually take about ${extraDays} business days longer than the estimate for metro cities.`] : []),
+        'If your order contains several items, they may arrive in separate parcels. Estimates are not guarantees: weather, strikes and courier delays can add time.',
+      ],
+    },
+    {
+      id: 'dispatch', title: '4. Order processing and dispatch',
+      body: 'Orders are usually packed and handed to our delivery partner within 1–2 business days of being confirmed. Orders placed after business hours, on weekends or on public holidays are processed on the next working day.',
+    },
+    {
+      id: 'tracking', title: '5. Tracking your order',
+      body: 'When your order is dispatched we send you the courier name and tracking number. You can also follow every step under Account → Orders, including the tracking link and the estimated delivery date.',
+    },
+    {
+      id: 'attempts', title: '6. Delivery attempts',
+      body: 'Our delivery partners usually make up to three delivery attempts. Please make sure your address and phone number are correct at checkout. If a parcel cannot be delivered it is returned to us, and we will contact you to re-ship it or refund your order.',
+    },
+    ...(cod ? [{ id: 'cod', title: '7. Cash on Delivery', body: [cod, 'Cash on Delivery is not available for gift cards or for products marked as not eligible on their product page.'] }] : []),
+    {
+      id: 'problems', title: `${cod ? 8 : 7}. Delays, damaged or missing parcels`,
+      body: [
+        'If your order is late, or tracking shows delivered but you have not received it, contact us as soon as you can and we will investigate with the courier.',
+        'If a parcel arrives damaged, or an item is wrong, raise a return from Account → Orders. See our Returns & refunds policy for how we make it right.',
+      ],
+    },
+  ], [brand, metros, extraDays, cod]);
+
+  const toc = useMemo(() => sections.map(({ id, title }) => ({ id: `shipping-${id}`, title })), [sections]);
+
+  const tiles = [
+    { label: 'Delivery charges', value: shippingPromise(brand) },
+    { label: 'Dispatch', value: 'Within 1–2 business days' },
+    { label: 'Delivery time', value: 'Shown on every product page' },
+    { label: 'Delivery area', value: 'All of India' },
+  ];
   const summary = (
     <div className="ship-summary">
-      {SUMMARY.map(({ label, value }, i) => (
+      {tiles.map(({ label, value }, i) => (
         <div key={label} className="ship-tile">
           <span className="ship-ico" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{SUMMARY_ICONS[i % SUMMARY_ICONS.length]}</svg>
@@ -68,21 +112,14 @@ export default function ShippingPolicy() {
   );
 
   return (
-    <LegalLayout
-      crumb="Shipping Policy"
-      title="Shipping Policy"
-      subtitle="Delivery timelines, charges and tracking for your orders."
-      updated="Last updated: June 2026"
-      toc={TOC}
-      lead={summary}
-    >
-      {SECTIONS.map(({ title, body }) => (
-        <LegalSection key={title} id={slug(title)} title={title}>
-          <p>{body}</p>
+    <LegalLayout crumb="Shipping Policy" title="Shipping Policy" subtitle="Delivery charges, delivery times and tracking for your orders." updated="Last updated: October 2026" toc={toc} lead={summary}>
+      {sections.map(({ id, title, body }) => (
+        <LegalSection key={id} id={`shipping-${id}`} title={title}>
+          {(Array.isArray(body) ? body : [body]).map((p, i) => <p key={i}>{p}</p>)}
         </LegalSection>
       ))}
       <LegalCallout tone="mint" icon="phone">
-        <p>Questions about a shipment? Call or WhatsApp {COMPANY.phoneDisplay}, or email {COMPANY.email}.</p>
+        <p>Questions about a shipment? Call {phone} or email {email}. You can also read our <Link to="/returns-policy" style={{ color: 'var(--primary)', fontWeight: 500 }}>Returns &amp; refunds policy</Link> and the <Link to="/help" style={{ color: 'var(--primary)', fontWeight: 500 }}>Help Centre</Link>.</p>
       </LegalCallout>
     </LegalLayout>
   );

@@ -29,20 +29,30 @@ export function sanitizeEmail(raw) {
 }
 
 // Keeps only the cart keys the order writer reads back (matching key, display name and
-// gift-card recipient details) and bounds each of them. `id` and `size` are only
+// gift-card recipient details) and bounds each of them. `id` and `variantId` are only
 // type-coerced and length-capped, never re-spaced: they are matching keys and must stay
 // byte-identical to what the pricing pass saw for the same line.
 export function sanitizeCart(raw) {
   if (!Array.isArray(raw)) return [];
   return raw.slice(0, 50).filter(i => i && typeof i === 'object').map(i => ({
     id: String(i.id ?? '').slice(0, 80),
-    size: i.size ? String(i.size).slice(0, 80) : null,
+    variantId: i.variantId ? String(i.variantId).slice(0, 80) : null,
     isGiftCard: !!i.isGiftCard,
     name: text(i.name, 200),
     recipientName: text(i.recipientName, 100),
     recipientEmail: sanitizeEmail(i.recipientEmail),
     giftMessage: typeof i.giftMessage === 'string' ? i.giftMessage.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim().slice(0, 500) : '',
   }));
+}
+
+// True when `addr` is for the delivery zone the checkout was priced for (computed.shipTo, signed into the
+// blob). Without this a customer could price delivery to a nearby city and ship to a far one. A blob from
+// before shipTo existed has none and passes.
+export function shipToMatches(shipTo, addr) {
+  if (!shipTo) return true;
+  const n = (v) => String(v || '').trim().toLowerCase();
+  return n(addr?.city) === n(shipTo.city) && n(addr?.state) === n(shipTo.state)
+    && String(addr?.pincode || '').trim() === String(shipTo.pincode || '').trim();
 }
 
 // One call for the whole set of order-write fields a checkout request carries.

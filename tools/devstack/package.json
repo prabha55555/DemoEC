@@ -1,0 +1,15 @@
+{
+  "name": "devstack",
+  "private": true,
+  "type": "module",
+  "description": "Local test harness for the store: real Postgres (PGlite) behind a PostgREST/auth-compatible server, plus the project's real api/*.js handlers with a fake Razorpay. Dev tooling only -- never bundled into the site.",
+  "scripts": {
+    "start": "node run.mjs",
+    "test:db": "node test-migration.mjs && node test-rpc.mjs && node test-seed.mjs",
+    "test:e2e": "node e2e-checkout.mjs && node e2e-orders.mjs && node e2e-hardening.mjs && node e2e-notify.mjs",
+    "test": "npm run test:db && npm run test:e2e"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.3.16"
+  }
+}

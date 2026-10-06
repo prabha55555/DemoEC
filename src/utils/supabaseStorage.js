@@ -26,6 +26,47 @@ const MAX_DIMENSION = 2400;
 const JPEG_QUALITY = 0.86;
 const SKIP_THRESHOLD_BYTES = 1.5 * 1024 * 1024; // already-small files aren't worth re-encoding
 
+// What to do with a large image before uploading it. Pure, so the decision can be tested without a canvas.
+//   { action: 'keep' }                                  upload the original untouched
+//   { action: 'jpeg', width, height }                   flatten to a JPEG at that size (photos)
+//   { action: 'resize', type, width, height }           shrink but KEEP the format (transparent PNG / WebP / AVIF)
+// A PNG / WebP / AVIF that really uses transparency (a logo, a cut-out product shot) must never become a JPEG:
+// JPEG has no alpha channel, so the transparent area would turn solid black.
+export function planImageUpload({ type, size, width, height, hasAlpha }) {
+  if (!String(type).startsWith('image/') || type === 'image/gif') return { action: 'keep' };
+  if (size <= SKIP_THRESHOLD_BYTES) return { action: 'keep' };
+  const longest = Math.max(width, height);
+  const scale = longest > MAX_DIMENSION ? MAX_DIMENSION / longest : 1;
+  const w = Math.round(width * scale);
+  const h = Math.round(height * scale);
+  if (hasAlpha && type !== 'image/jpeg') {
+    return scale < 1 ? { action: 'resize', type, width: w, height: h } : { action: 'keep' };
+  }
+  return { action: 'jpeg', width: w, height: h };
+}
+
+// True when the picture has any visibly transparent pixel. Looks at a small downscaled copy: averaging keeps
+// even a thin transparent edge below full opacity. If the pixels cannot be read, assume transparency (the safe
+// answer: the original format is kept).
+function detectAlpha(bitmap) {
+  try {
+    const scale = Math.min(1, 128 / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    const px = ctx.getImageData(0, 0, w, h).data;
+    for (let i = 3; i < px.length; i += 4) if (px[i] < 250) return true;
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+const EXT_FOR_TYPE = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/avif': '.avif' };
+
 async function compressImage(file) {
   if (!file.type.startsWith('image/') || file.type === 'image/gif') return file;
   if (file.size <= SKIP_THRESHOLD_BYTES) return file;
@@ -33,24 +74,26 @@ async function compressImage(file) {
   const bitmap = await createImageBitmap(file).catch(() => null);
   if (!bitmap) return file; // decode failed -- upload the original rather than block the admin
 
-  let { width, height } = bitmap;
-  if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-    const scale = MAX_DIMENSION / Math.max(width, height);
-    width = Math.round(width * scale);
-    height = Math.round(height * scale);
-  }
+  const plan = planImageUpload({
+    type: file.type, size: file.size, width: bitmap.width, height: bitmap.height,
+    hasAlpha: file.type === 'image/jpeg' ? false : detectAlpha(bitmap),
+  });
+  if (plan.action === 'keep') { bitmap.close?.(); return file; }
 
   const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+  canvas.width = plan.width;
+  canvas.height = plan.height;
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, plan.width, plan.height);
   bitmap.close?.();
 
-  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY));
-  if (!blob || blob.size >= file.size) return file; // re-encode didn't help -- keep the original
+  const outType = plan.action === 'jpeg' ? 'image/jpeg' : plan.type;
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, outType, JPEG_QUALITY));
+  // The browser silently falls back to PNG for a type it cannot encode (AVIF): only accept what we asked for,
+  // and only if it actually got smaller.
+  if (!blob || blob.type !== outType || blob.size >= file.size) return file;
 
-  const newName = file.name.replace(/\.[^.]+$/, '') + '.jpg';
-  return new File([blob], newName, { type: 'image/jpeg' });
+  const newName = file.name.replace(/\.[^.]+$/, '') + (EXT_FOR_TYPE[outType] || '.jpg');
+  return new File([blob], newName, { type: outType });
 }
 
 // Client-side only, same as ALLOWED_IMAGE_TYPES above -- a courtesy check to
@@ -105,18 +148,39 @@ export async function uploadToStorage(file, folder = 'products') {
   return data.publicUrl;
 }
 
+// A public Storage URL -> its object path inside `bucket` ('' when the URL is not one of ours). Query strings
+// and percent-encoding are handled, so a URL copied from the browser still resolves to the stored file.
+export function storagePathOf(url, bucket) {
+  if (typeof url !== 'string') return '';
+  const marker = `/storage/v1/object/public/${bucket}/`;
+  const at = url.indexOf(marker);
+  if (at === -1) return '';
+  const raw = url.slice(at + marker.length).split(/[?#]/)[0];
+  try { return decodeURIComponent(raw); } catch { return raw; }
+}
+
 // Deletes previously-uploaded files from Storage, given their public URLs (as saved
 // on a product/story). Best-effort: logs rather than throws, since a failed cleanup
 // shouldn't block the product/story deletion that triggered it. URLs that aren't
 // from this bucket (pre-migration Cloudinary URLs, anything pasted in manually) are
 // silently skipped -- there's nothing of ours to remove.
 export async function deleteFromStorage(urls) {
-  const list = (Array.isArray(urls) ? urls : [urls]).filter(u => typeof u === 'string');
+  const list = (Array.isArray(urls) ? urls.flat() : [urls]).filter(u => typeof u === 'string' && u);
   for (const bucket of [BUCKET, VIDEO_BUCKET]) {
-    const marker = `/storage/v1/object/public/${bucket}/`;
-    const paths = list.filter(u => u.includes(marker)).map(u => u.slice(u.indexOf(marker) + marker.length));
+    const paths = Array.from(new Set(list.map(u => storagePathOf(u, bucket)).filter(Boolean)));
     if (paths.length === 0) continue;
     const { error } = await supabase.storage.from(bucket).remove(paths);
     if (error) console.error('Storage cleanup failed:', error);
   }
+}
+
+// The file URLs that were in a record BEFORE an edit and are not in it AFTER -- i.e. replaced or removed
+// images / videos whose files are now orphaned. Pass the same list of URL fields for both:
+//   const gone = staleMediaUrls([old.image_url, old.mobile_image_url], [form.image_url, form.mobile_image_url]);
+//   after a SUCCESSFUL save:  deleteFromStorage(gone)
+// Arrays may be nested (a gallery inside the list); empty values are ignored.
+export function staleMediaUrls(previous, next) {
+  const flat = (v) => (Array.isArray(v) ? v.flat(Infinity) : [v]).filter(u => typeof u === 'string' && u);
+  const keep = new Set(flat(next));
+  return Array.from(new Set(flat(previous))).filter(u => !keep.has(u));
 }

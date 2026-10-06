@@ -20,7 +20,7 @@ import { timingSafeHexEqual, readBlob } from '../src/utils/signedToken.js';
 import { createClient } from '@supabase/supabase-js';
 import { writeVerifiedOrder } from '../src/utils/orderWrite.js';
 import { sendWhatsAppOrderConfirmation } from '../src/utils/sendWhatsAppConfirmation.js';
-import { sanitizeOrderFields, sanitizeEmail } from '../src/utils/orderInput.js';
+import { sanitizeOrderFields, sanitizeEmail, shipToMatches } from '../src/utils/orderInput.js';
 
 // Anon-key client -- only ever verifies a user's own bearer token
 // (auth.getUser), which needs no elevated privilege. Every privileged RPC
@@ -52,7 +52,8 @@ export default async function handler(req, res) {
 
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, blob, blobSig } = req.body || {};
   const { cart, addr, billAddr, userName, userPhone, estimatedDelivery } = sanitizeOrderFields(req.body);
-  const userEmail = req.body?.userEmail;
+  // A guest's typed address is untrusted text: bound and validated like every other customer-supplied field.
+  const userEmail = sanitizeEmail(req.body?.userEmail) || null;
 
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !blob || !blobSig) {
     res.status(400).json({ verified: false, error: 'Missing payment details.' });
@@ -123,6 +124,12 @@ export default async function handler(req, res) {
       return;
     }
     const { computed, receipt } = parsedBlob;
+    if (!shipToMatches(computed.shipTo, addr)) {
+      // Checked before any state changes; a genuine paid order is still written by the webhook from the address
+      // the server stored when it priced the checkout.
+      res.status(400).json({ verified: false, error: 'Your delivery address changed after pricing. Please start checkout again.' });
+      return;
+    }
 
     // 3. Re-fetch the real payment from Razorpay -- confirms it was actually
     // captured, for this order, at the amount the server computed. Steps 1+2
@@ -177,7 +184,7 @@ export default async function handler(req, res) {
     // verified blob.
     const result = await writeVerifiedOrder({
       paymentKey: razorpay_payment_id,
-      computed, receipt, status: 'Paid',
+      computed, receipt,
       paymentId: razorpay_payment_id, razorpayOrderId: razorpay_order_id,
       cart, addr, billAddr, userId: ownerId, userEmail: ownerEmail, userName, userPhone, estimatedDelivery,
     });
@@ -200,7 +207,8 @@ export default async function handler(req, res) {
     // same reasoning already applied to the automatic email above. Never
     // allowed to affect the customer's response either way; its own
     // internal timeout/error handling never throws.
-    await sendWhatsAppOrderConfirmation(result.order);
+    // (not again when the webhook or an earlier request already processed this payment -- it was sent then)
+    if (!result.alreadyProcessed) await sendWhatsAppOrderConfirmation(result.order);
 
     res.status(200).json({ verified: true, order: result.order });
   } catch (err) {

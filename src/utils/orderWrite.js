@@ -23,7 +23,7 @@
 import { sendOrderConfirmationEmail } from './sendOrderConfirmationEmail.js';
 import { withTimeout } from './withTimeout.js';
 import { supabaseAdmin as supabase } from './supabaseAdmin.js';
-import { issueGiftCards, creditGiftCardBalance } from './giftCards.js';
+import { issueGiftCards, creditGiftCardBalance, redeemGiftCardBalance } from './giftCards.js';
 import { refundRazorpayPayment } from './razorpayRefund.js';
 // Hard cap on the automatic confirmation-email attempt -- this function runs
 // inside a Vercel serverless function with its own execution time limit, and
@@ -63,20 +63,8 @@ async function refundIfPaid({ paymentId, amountPaise, reason }) {
   }
 }
 
-// Best-effort: a redeemed gift card's balance is debited at RESERVATION time now
-// (api/razorpay-create-order.js, atomically, before payment even exists -- see
-// its own comment); if the order can't be completed after that, the balance
-// must go back regardless of which failure branch below triggered this.
-async function creditRedeemedGiftCardIfAny(computed, receipt) {
-  if (!(computed.giftCardCode && Number(computed.computedGiftCardApplied) > 0)) return;
-  const credited = await creditGiftCardBalance(supabase, computed.giftCardCode, computed.computedGiftCardApplied);
-  if (!credited) {
-    console.error('SECURITY/RECONCILIATION: could not credit back a redeemed gift card balance after an order-write failure -- needs manual check.', computed.giftCardCode, computed.computedGiftCardApplied, receipt);
-  }
-}
-
 export async function writeVerifiedOrder({
-  paymentKey, computed, receipt, status, paymentId, razorpayOrderId, cart, addr, billAddr,
+  paymentKey, computed, receipt, paymentId, razorpayOrderId, cart, addr, billAddr,
   userId, userEmail, userName, userPhone, estimatedDelivery,
   // BUG-4 fix: the free/₹0 path (api/verify-free-order.js) has no captured payment to
   // justify honoring an already-expired or missing reservation the way the paid path
@@ -121,29 +109,120 @@ export async function writeVerifiedOrder({
   // claim_pending_order's atomic delete-and-return means it can never race
   // unsafely against the expiry sweep: whichever gets here first wins the row.
   let inventoryIssue = null;
+  const needsGift = !!(computed.giftCardCode && Number(computed.computedGiftCardApplied) > 0);
+  const needsCoupon = !!(computed.couponCode && Number(computed.computedDiscount) > 0);
+  // What this order is holding RIGHT NOW (set from the claimed row below). Every failure after the claim gives
+  // back exactly these, once -- see failOrder().
+  let giftHeld = false;
+  let couponHeld = false;
+  let stockLines = [];
+
+  // Gives back what this attempt still holds, and undoes the order-side work, then reports the failure.
+  // The claim consumed (deleted) the reservation row, so NOTHING else will ever release these.
+  async function failOrder({ refundReason, paidMessage, unpaidMessage, voidGiftCodes = [], unclaimLabel }) {
+    if (stockLines.length) {
+      const { error } = await supabase.rpc('release_stock_lines', { p_items: stockLines });
+      if (error) console.error('SECURITY/RECONCILIATION: could not give back reserved stock after an order-write failure -- needs manual check.', error.message, 'order', receipt);
+    }
+    if (couponHeld) {
+      const { error } = await supabase.rpc('release_coupon_use', { p_code: computed.couponCode });
+      if (error) console.error('SECURITY/RECONCILIATION: could not release a coupon use after an order-write failure -- needs manual check.', error.message, computed.couponCode, receipt);
+    }
+    if (giftHeld) {
+      const credited = await creditGiftCardBalance(supabase, computed.giftCardCode, computed.computedGiftCardApplied);
+      if (!credited) console.error('SECURITY/RECONCILIATION: could not credit back a redeemed gift card balance after an order-write failure -- needs manual check.', computed.giftCardCode, computed.computedGiftCardApplied, receipt);
+    }
+    if (voidGiftCodes.length) {
+      // gift cards this order had already issued must not outlive its refund
+      const { error } = await supabase.from('gift_cards').delete().in('code', voidGiftCodes);
+      if (error) console.error('SECURITY/RECONCILIATION: could not remove gift cards issued for a failed order -- needs manual check.', voidGiftCodes, receipt);
+    }
+    stockLines = []; couponHeld = false; giftHeld = false;
+    await refundIfPaid({ paymentId, amountPaise, reason: refundReason });
+    // Release the used_payments claim made above so a genuine retry is never answered with a stale
+    // "already processed" for a payment that produced no order.
+    const { error: unclaimError } = await supabase.from('used_payments').delete().eq('payment_key', paymentKey).eq('order_id', receipt);
+    if (unclaimError) console.error(`SECURITY/RECONCILIATION: could not release used_payments claim after ${unclaimLabel || 'a failure'} -- payment may be stuck as processed with no order. Needs manual check.`, unclaimError, 'paymentKey', paymentKey, 'order', receipt);
+    return { ok: false, error: paymentId ? paidMessage : unpaidMessage };
+  }
+
   {
     const { data: claimedPending, error: pendingClaimError } = await supabase.rpc('claim_pending_order', { p_receipt: receipt });
     if (pendingClaimError) {
       console.error('claim_pending_order failed during finalization (non-fatal, treated as inventory issue):', pendingClaimError, 'order', receipt);
     }
-    const noLiveReservation = !!pendingClaimError || !claimedPending || claimedPending.status === 'released';
+    const flags = claimedPending?.computed || {};
+    const stockReleased = !!pendingClaimError || !claimedPending || claimedPending.status === 'released';
+    // The public release endpoint (and the expiry sweep) can give a checkout's coupon use and gift-card balance
+    // back BEFORE its payment lands -- a slow UPI approval, or someone releasing a checkout they then pay.
+    const creditsReleased = (needsGift && !!flags.giftCardReleased) || (needsCoupon && !!flags.couponReleased);
+    const noLiveReservation = stockReleased || creditsReleased;
+
     if (noLiveReservation && requireLiveReservation) {
-      // Free/₹0 order, no live reservation left to honor -- refuse outright rather
-      // than write an order against stock/coupon/gift-card state that may no longer
-      // hold. Release the used_payments claim just made above so a genuine retry
-      // (a fresh checkout attempt, with its own new receipt) is never blocked by a
-      // stale ALREADY_PROCESSED response tied to this now-abandoned receipt.
+      // Free/₹0 or Cash-on-Delivery order, no live reservation left to honor -- refuse outright rather
+      // than write an order against stock/coupon/gift-card state that may no longer hold. Release the
+      // used_payments claim just made above so a genuine retry (a fresh checkout attempt, with its own new
+      // receipt) is never blocked by a stale ALREADY_PROCESSED response tied to this now-abandoned receipt.
       const { error: unclaimError } = await supabase.from('used_payments').delete().eq('payment_key', paymentKey).eq('order_id', receipt);
       if (unclaimError) console.error('SECURITY/RECONCILIATION: could not release used_payments claim after a free-order reservation check failed.', unclaimError, 'paymentKey', paymentKey, 'order', receipt);
+      // whatever is still held by the consumed row goes back (a released row holds nothing)
+      if (claimedPending && claimedPending.status === 'reserved' && claimedPending.reserved_items?.length) await supabase.rpc('release_stock_lines', { p_items: claimedPending.reserved_items });
+      if (claimedPending && needsCoupon && !flags.couponReleased) await supabase.rpc('release_coupon_use', { p_code: computed.couponCode });
+      if (claimedPending && needsGift && !flags.giftCardReleased) await creditGiftCardBalance(supabase, computed.giftCardCode, computed.computedGiftCardApplied);
       return { ok: false, error: 'Your checkout session expired before it could be confirmed. Please try again.', retryable: true };
     }
-    if (noLiveReservation) {
+
+    if (!claimedPending && (needsGift || needsCoupon)) {
+      // No reservation record at all: nobody can say whether the coupon / gift card was already given back, so
+      // honoring the discount could double-spend. A paid customer is refunded rather than guessed at.
+      return failOrder({
+        refundReason: 'Checkout record missing -- gift card / coupon state unknown',
+        paidMessage: 'We could not confirm your gift card or coupon for this order. Your payment has been refunded automatically.',
+        unpaidMessage: 'We could not confirm your gift card or coupon for this order. Please contact us with your payment ID.',
+        unclaimLabel: 'an unknown-reservation failure',
+      });
+    }
+
+    // From here the claimed row tells us what this order holds.
+    stockLines = !stockReleased && claimedPending.status === 'reserved' ? (claimedPending.reserved_items || []) : [];
+    giftHeld = needsGift && !flags.giftCardReleased;
+    couponHeld = needsCoupon && !flags.couponReleased;
+
+    // Re-take what a release gave back, so a paid order never keeps a discount that was returned to the pool.
+    if (needsGift && flags.giftCardReleased) {
+      const redeemed = await redeemGiftCardBalance(supabase, computed.giftCardCode, Number(computed.computedGiftCardApplied));
+      const fullAmount = redeemed.ok && Math.abs(Number(redeemed.applied) - Number(computed.computedGiftCardApplied)) < 0.005;
+      if (!fullAmount) {
+        if (redeemed.ok && Number(redeemed.applied) > 0) await creditGiftCardBalance(supabase, computed.giftCardCode, redeemed.applied);
+        return failOrder({
+          refundReason: 'Gift card balance no longer available when payment completed',
+          paidMessage: 'The gift card on this order could no longer be applied. Your payment has been refunded automatically -- please place the order again.',
+          unpaidMessage: 'The gift card on this order could no longer be applied. Please contact us with your payment ID.',
+          unclaimLabel: 'a gift-card re-hold failure',
+        });
+      }
+      giftHeld = true;
+    }
+    if (needsCoupon && flags.couponReleased) {
+      const { error: couponErr } = await supabase.rpc('redeem_coupon_use', { p_code: computed.couponCode });
+      if (couponErr) {
+        return failOrder({
+          refundReason: 'Coupon no longer available when payment completed',
+          paidMessage: 'The coupon on this order is no longer available. Your payment has been refunded automatically -- please place the order again.',
+          unpaidMessage: 'The coupon on this order is no longer available. Please contact us with your payment ID.',
+          unclaimLabel: 'a coupon re-hold failure',
+        });
+      }
+      couponHeld = true;
+    }
+
+    if (stockReleased) {
       inventoryIssue = {
         detected_at: new Date().toISOString(),
         reason: claimedPending?.status === 'released'
           ? 'Stock reservation expired and was released before payment finalized.'
           : 'No stock reservation record found for this payment at finalization time.',
-        items: verifiedItems.filter(v => !v.isGiftCard).map(v => ({ id: v.id, size: v.size || null, qty: v.qty })),
+        items: verifiedItems.filter(v => !v.isGiftCard).map(v => ({ id: v.id, variantId: v.variantId || null, qty: v.qty })),
         payment_id: paymentId || null,
       };
       console.error('INVENTORY ISSUE: payment succeeded with no live stock reservation.', 'order', receipt, 'payment', paymentId);
@@ -160,23 +239,33 @@ export async function writeVerifiedOrder({
   // real value out of a single real payment. Capping at exactly one write per
   // key in `verifiedItems` makes that impossible regardless of what `cart`
   // contains.
-  const cartByKey = new Map(cart.map(item => [item.isGiftCard ? `gc:${item.id}` : `${item.id}::${item.size || ''}`, item]));
+  const lineKeyOf = (item) => item.isGiftCard ? `gc:${item.id}` : String(item.variantId || '');
+  const cartByKey = new Map(cart.map(item => [lineKeyOf(item), item]));
 
   const orderItems = [];
   for (const verified of verifiedItems) {
-    const key = verified.isGiftCard ? `gc:${verified.id}` : `${verified.id}::${verified.size || ''}`;
+    const key = lineKeyOf(verified);
     const item = cartByKey.get(key);
     if (!item) {
-      await creditRedeemedGiftCardIfAny(computed, receipt);
-      await refundIfPaid({ paymentId, amountPaise, reason: 'Cart changed after payment was verified' });
-      const { error: unclaimError } = await supabase.from('used_payments').delete().eq('payment_key', paymentKey).eq('order_id', receipt);
-      if (unclaimError) console.error('SECURITY/RECONCILIATION: could not release used_payments claim after a cart-mismatch failure.', unclaimError, 'paymentKey', paymentKey, 'order', receipt);
-      return { ok: false, error: paymentId ? 'Your cart changed after payment was verified. Your payment has been refunded automatically.' : 'Your cart changed after payment was verified. Please contact us with your payment ID.' };
+      return failOrder({
+        refundReason: 'Cart changed after payment was verified',
+        paidMessage: 'Your cart changed after payment was verified. Your payment has been refunded automatically.',
+        unpaidMessage: 'Your cart changed after payment was verified. Please contact us with your payment ID.',
+        unclaimLabel: 'a cart-mismatch failure',
+      });
     }
-    orderItems.push({
-      id: verified.id, name: verified.name || item.name, qty: verified.qty, price: verified.price, cat: verified.cat, size: verified.size || null,
-      ...(verified.isGiftCard ? { isGiftCard: true, recipientName: item.recipientName || null, recipientEmail: item.recipientEmail || null, giftMessage: item.giftMessage || null } : {}),
-    });
+    // Everything an invoice, a return or an email needs is frozen on the line at purchase time, so
+    // later catalogue edits (renamed product, new price, deleted variant) never rewrite history.
+    orderItems.push(verified.isGiftCard
+      ? { id: verified.id, name: item.name || 'Gift card', qty: verified.qty, price: verified.price, isGiftCard: true, recipientName: item.recipientName || null, recipientEmail: item.recipientEmail || null, giftMessage: item.giftMessage || null }
+      : {
+          id: verified.id, variantId: verified.variantId, sku: verified.sku || null,
+          name: verified.name || item.name, variantLabel: verified.variantLabel || '', options: verified.options || {},
+          qty: verified.qty, price: verified.price, mrp: verified.mrp ?? null,
+          cat: verified.cat, brand: verified.brand || null, image: verified.image || null,
+          gstRate: verified.gstRate ?? null, hsn: verified.hsn || '', returnWindowDays: verified.returnWindowDays ?? null,
+          lineDiscount: Number(verified.lineDiscount) || 0,
+        });
   }
 
   // ---- Issue any purchased gift cards, with a server-generated code ----
@@ -191,8 +280,11 @@ export async function writeVerifiedOrder({
   const giftCardVerifiedItems = verifiedItems.filter(v => v.isGiftCard);
   const issuedCodesByLineId = new Map();
   if (giftCardVerifiedItems.length > 0) {
+    // Validity is a store setting (months); 6 when unset.
+    const { data: giftSettings } = await supabase.from('settings').select('gift_card_validity_months').eq('id', 'brand').maybeSingle();
+    const validityMonths = Number(giftSettings?.gift_card_validity_months) > 0 ? Number(giftSettings.gift_card_validity_months) : 6;
     const expiresAt = new Date();
-    expiresAt.setMonth(expiresAt.getMonth() + 6);
+    expiresAt.setMonth(expiresAt.getMonth() + validityMonths);
     const cards = giftCardVerifiedItems.map(v => {
       const item = cartByKey.get(`gc:${v.id}`);
       return {
@@ -207,11 +299,12 @@ export async function writeVerifiedOrder({
     });
     const issued = await issueGiftCards(supabase, cards);
     if (!issued.ok) {
-      await creditRedeemedGiftCardIfAny(computed, receipt);
-      await refundIfPaid({ paymentId, amountPaise, reason: 'Could not issue purchased gift card' });
-      const { error: unclaimError } = await supabase.from('used_payments').delete().eq('payment_key', paymentKey).eq('order_id', receipt);
-      if (unclaimError) console.error('SECURITY/RECONCILIATION: could not release used_payments claim after a gift-card-issue failure.', unclaimError, 'paymentKey', paymentKey, 'order', receipt);
-      return { ok: false, error: paymentId ? 'Could not create your gift card. Your payment has been refunded automatically.' : 'Could not create your gift card. Please contact us with your payment ID.' };
+      return failOrder({
+        refundReason: 'Could not issue purchased gift card',
+        paidMessage: 'Could not create your gift card. Your payment has been refunded automatically.',
+        unpaidMessage: 'Could not create your gift card. Please contact us with your payment ID.',
+        unclaimLabel: 'a gift-card-issue failure',
+      });
     }
     for (const { lineKey, code } of issued.codes) issuedCodesByLineId.set(lineKey, code);
   }
@@ -225,16 +318,25 @@ export async function writeVerifiedOrder({
   // reservation already uses. Nothing to redeem here; this order simply records
   // how much of that already-debited amount it used.
 
+  // How the customer is paying: online (a captured Razorpay payment), Cash on Delivery (the server
+  // priced the cart as COD and signed it), or nothing at all (a coupon / gift card covered it).
+  const isCod = computed.paymentMethod === 'cod' && Number(computed.computedTotal) > 0;
+  const paymentMethod = isCod ? 'cod' : (paymentId ? 'razorpay' : 'free');
+  const now = new Date().toISOString();
+
   const orderData = {
     order_id: receipt, user_id: userId || null, user_email: userEmail, user_name: userName, user_phone: userPhone,
     address: { ...addr, billing: billAddr },
     items: orderItems,
-    subtotal: computed.computedSubtotal, shipping: computed.computedShipping, total: computed.computedTotal,
+    subtotal: computed.computedSubtotal, shipping: computed.computedShipping, cod_fee: Number(computed.computedCodFee) || 0,
+    tax_total: Number(computed.computedTax) || 0, total: computed.computedTotal,
     coupon_code: computed.computedDiscount > 0 ? (computed.couponCode || null) : null, discount: computed.computedDiscount,
     gift_card_code: computed.computedGiftCardApplied > 0 ? (computed.giftCardCode || null) : null,
     gift_card_applied: computed.computedGiftCardApplied > 0 ? Number(computed.computedGiftCardApplied) : 0,
-    payment_method: 'razorpay',
-    status,
+    payment_method: paymentMethod,
+    status: 'Placed',
+    payment_status: isCod ? 'cod_pending' : 'paid',
+    timeline: [{ status: 'Placed', at: now, by: 'system', note: isCod ? 'Cash on Delivery' : undefined }],
     payment_id: paymentId || null,
     razorpay_order_id: razorpayOrderId || null,
     estimated_delivery: estimatedDelivery || null,
@@ -252,17 +354,23 @@ export async function writeVerifiedOrder({
       return { ok: false, error: ALREADY_PROCESSED };
     }
     console.error('orders insert failed:', orderError);
-    await creditRedeemedGiftCardIfAny(computed, receipt);
-    await refundIfPaid({ paymentId, amountPaise, reason: 'Could not save order after payment' });
-    // Without this, a genuine (non-duplicate) failure here left the payment
-    // permanently stuck: claimed in used_payments, but with no order to
-    // show for it, and no way to retry -- a later attempt for the exact
-    // same payment would just be told ALREADY_PROCESSED forever. Removing
-    // the claim we made moments ago (this exact row, nothing historical)
-    // lets a genuine retry succeed instead of dead-ending silently.
-    const { error: unclaimError } = await supabase.from('used_payments').delete().eq('payment_key', paymentKey).eq('order_id', receipt);
-    if (unclaimError) console.error('SECURITY/RECONCILIATION: could not release used_payments claim after a failed order write -- payment may be permanently stuck as processed with no order. Needs manual check.', unclaimError, 'paymentKey', paymentKey, 'order', receipt);
-    return { ok: false, error: paymentId ? 'Could not save your order. Your payment has been refunded automatically.' : 'Could not save your order. Please contact us with your payment ID.' };
+    // Gift cards this order issued must not outlive its refund (the customer would keep the card AND the money).
+    return failOrder({
+      refundReason: 'Could not save order after payment',
+      paidMessage: 'Could not save your order. Your payment has been refunded automatically.',
+      unpaidMessage: 'Could not save your order. Please contact us with your payment ID.',
+      voidGiftCodes: [...issuedCodesByLineId.values()].filter(Boolean),
+      unclaimLabel: 'a failed order write',
+    });
+  }
+
+  // Stock ledger rows + popularity counter (stock itself was already taken at reservation time).
+  // Best effort: a failure here never affects an order that is already saved and paid.
+  try {
+    const { error: saleError } = await supabase.rpc('record_order_sale', { p_order_id: receipt, p_items: orderItems });
+    if (saleError) console.error('record_order_sale failed (non-fatal):', saleError.message, 'order', receipt);
+  } catch (saleErr) {
+    console.error('record_order_sale threw (non-fatal):', saleErr?.message, 'order', receipt);
   }
 
   // Automatic ORDER_CONFIRMED -- only ever reached once the order is genuinely

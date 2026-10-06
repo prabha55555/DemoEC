@@ -6,8 +6,10 @@
 // database, coupons/gift cards are re-validated from their own tables, and the
 // Razorpay order is created for that server-computed total -- never the client's.
 import { createClient } from '@supabase/supabase-js';
-import { getShippingCost } from '../src/utils/delivery.js';
-import { cartSubtotalOf, couponDiscountOf, couponEligibleFor, giftCardAppliedOf, DEFAULT_GIFTCARD_MIN, giftcardMaxOf } from '../src/utils/pricing.js';
+import { shippingFor } from '../src/utils/shipping.js';
+import { cartSubtotalOf, couponDiscountOf, couponLineDiscounts, couponProblem, giftCardAppliedOf, DEFAULT_GIFTCARD_MIN, giftcardMaxOf } from '../src/utils/pricing.js';
+import { isVariantPurchasable, variantStock, categoryIdsWithAncestors, categoryChain } from '../src/utils/catalog.js';
+import { computeTax, resolveGstRate, resolveHsn } from '../src/utils/tax.js';
 import { issueBlob } from '../src/utils/signedToken.js';
 import { supabaseAdmin as supabase } from '../src/utils/supabaseAdmin.js';
 import { redeemGiftCardBalance, creditGiftCardBalance } from '../src/utils/giftCards.js';
@@ -53,6 +55,8 @@ export default async function handler(req, res) {
   }
 
   const { items, couponCode, giftCardCode, checkoutAttemptKey } = req.body || {};
+  // 'cod' only when the store has enabled it AND the cart qualifies (checked below); anything else is online.
+  const paymentMethod = req.body?.paymentMethod === 'cod' ? 'cod' : 'online';
   // Everything else (address, contact fields, cart display metadata) is customer-supplied
   // but not price-sensitive -- sanitized for shape/length before being stashed in
   // pending_orders, never trusted for pricing.
@@ -68,6 +72,11 @@ export default async function handler(req, res) {
   }
   if (!cart.length || !addr.line1) {
     res.status(400).json({ error: 'Missing order details.' });
+    return;
+  }
+  // The delivery fee depends on the city, so a blank one must never fall back to the cheaper zone.
+  if (!addr.city) {
+    res.status(400).json({ error: 'Please enter your city or town.' });
     return;
   }
 
@@ -121,11 +130,13 @@ export default async function handler(req, res) {
   let verifiedItemsForClient;
   let cartSubtotal;
   let couponCandidate = null;
+  let couponNote = null;
   let giftCardCandidate = null;
+  let brand = {};
   try {
-    // Aggregate quantities per product+size (and per gift-card line) BEFORE anything else --
+    // Aggregate quantities per variant (and per gift-card line) BEFORE anything else --
     // otherwise a request could split one large quantity across several line entries.
-    const lineKey = (i) => i.isGiftCard ? `gc:${i.id}` : `${i.id}::${i.size || ''}`;
+    const lineKey = (i) => i.isGiftCard ? `gc:${i.id}` : String(i.variantId || '');
     const aggregated = new Map();
     for (const item of items) {
       const qty = Number(item.qty);
@@ -133,32 +144,43 @@ export default async function handler(req, res) {
         res.status(400).json({ error: 'One of the items in your cart has an invalid quantity.' });
         return;
       }
+      if (!item.isGiftCard && !item.variantId) {
+        res.status(400).json({ error: 'One of the items in your cart is out of date. Please remove and re-add it.' });
+        return;
+      }
       const key = lineKey(item);
       const existing = aggregated.get(key);
       if (existing) existing.qty += qty;
-      else aggregated.set(key, { id: item.id, size: item.size || null, isGiftCard: !!item.isGiftCard, price: item.price, qty });
+      else aggregated.set(key, { id: item.id, variantId: item.variantId || null, isGiftCard: !!item.isGiftCard, price: item.price, qty });
     }
     const mergedItems = [...aggregated.values()];
 
     const productIds = [...new Set(mergedItems.filter(i => !i.isGiftCard).map(i => i.id))];
-    const hasGiftCard = mergedItems.some(i => i.isGiftCard);
-    const [{ data: products, error: prodErr }, { data: settings }] = await Promise.all([
+    const variantIds = [...new Set(mergedItems.filter(i => !i.isGiftCard).map(i => i.variantId))];
+    const [prodRes, varRes, settingsRes, catRes] = await Promise.all([
       productIds.length ? supabase.from('products').select('*').in('id', productIds) : Promise.resolve({ data: [], error: null }),
-      hasGiftCard ? supabase.from('settings').select('giftcard_min, giftcard_max').eq('id', 'brand').maybeSingle() : Promise.resolve({ data: null }),
+      variantIds.length ? supabase.from('product_variants').select('*').in('id', variantIds) : Promise.resolve({ data: [], error: null }),
+      supabase.from('settings').select('*').eq('id', 'brand').maybeSingle(),
+      supabase.from('categories').select('id, parent_id, gst_rate, hsn_code'),
     ]);
-    if (prodErr) {
+    // Settings drive the shipping fee, COD rules and tax; categories drive GST and coupon scope. If either read
+    // fails, stop -- continuing would silently price shipping at 0.
+    if (prodRes.error || varRes.error || settingsRes.error || catRes.error) {
+      console.error('razorpay-create-order: catalogue/settings read failed.', prodRes.error?.message || varRes.error?.message || settingsRes.error?.message || catRes.error?.message);
       res.status(500).json({ error: 'Could not verify your cart. Please try again.' });
       return;
     }
-    const productById = Object.fromEntries((products || []).map(p => [p.id, p]));
+    const productById = Object.fromEntries((prodRes.data || []).map(p => [p.id, p]));
+    const variantById = Object.fromEntries((varRes.data || []).map(v => [v.id, v]));
+    brand = settingsRes.data || {};
+    const categories = catRes.data || [];
 
-    let giftcardMin = DEFAULT_GIFTCARD_MIN, giftcardMax = Infinity;
-    if (settings) {
-      // ?? applied BEFORE Number() -- an admin deliberately setting a 0 minimum must not
-      // be silently overridden back to the hardcoded default.
-      giftcardMin = Number(settings.giftcard_min ?? giftcardMin);
-      giftcardMax = giftcardMaxOf(settings.giftcard_max);
-    }
+    // ?? applied BEFORE Number() -- an admin deliberately setting a 0 minimum must not
+    // be silently overridden back to the hardcoded default.
+    const giftcardMin = Number(brand.giftcard_min ?? DEFAULT_GIFTCARD_MIN);
+    const giftcardMax = giftcardMaxOf(brand.giftcard_max);
+    const defaultGst = Number(brand.default_gst_rate ?? 18);
+    const defaultReturnDays = Number(brand.return_window_days ?? 7);
 
     verifiedCart = [];
     verifiedItemsForClient = [];
@@ -177,53 +199,92 @@ export default async function handler(req, res) {
           return;
         }
         verifiedCart.push({ id: item.id, price, qty: item.qty, isGiftCard: true });
-        verifiedItemsForClient.push({ id: item.id, size: null, isGiftCard: true, price, qty: item.qty });
+        verifiedItemsForClient.push({ id: item.id, variantId: null, isGiftCard: true, price, qty: item.qty });
         continue;
       }
 
       const product = productById[item.id];
-      if (!product || product.available === false || product.enquiry_only) {
+      const variant = variantById[item.variantId];
+      // The variant must belong to the product the client named, be live, and be purchasable --
+      // a stale cart line or a tampered request just reads as "no longer available".
+      if (!product || product.status !== 'active' || !variant || variant.product_id !== product.id || variant.active === false) {
         res.status(400).json({ error: 'One of the items in your cart is no longer available.' });
         return;
       }
-
-      let price = Number(product.price);
-      const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
-      if (hasVariants) {
-        if (!item.size) {
-          res.status(400).json({ error: 'One of the items in your cart needs an option selected -- please remove and re-add it.' });
-          return;
-        }
-        const variant = product.variants.find(v => v.size === item.size);
-        if (!variant) {
-          res.status(400).json({ error: 'One of the items in your cart is no longer available.' });
-          return;
-        }
-        price = Number(variant.price);
-      }
-      // Shipping is a flat per-unit add-on set on the product -- folded in here, server-side,
-      // so it's always part of the real charge. Must match src/data/products.js's
-      // effectivePrice() exactly.
-      price += Number(product.shipping_charge) || 0;
+      const price = Number(variant.price);
       if (!Number.isFinite(price) || price <= 0) {
         res.status(400).json({ error: 'One of the items in your cart is no longer available.' });
         return;
       }
+      const maxQty = Number(product.max_qty_per_order) > 0 ? Number(product.max_qty_per_order) : 10;
+      if (item.qty > maxQty) {
+        res.status(400).json({ error: `You can order at most ${maxQty} of "${product.name}" at a time.` });
+        return;
+      }
+      // Friendly early message only -- reserve_product_stock (below) does the real, concurrency-safe
+      // atomic check-and-reserve.
+      const left = variantStock(variant);
+      if (!isVariantPurchasable(variant) || (left !== null && item.qty > left)) {
+        res.status(400).json({ error: left ? `Only ${left} left of "${product.name}". Please reduce the quantity.` : `"${product.name}" just sold out.` });
+        return;
+      }
 
-      // Stock sufficiency is deliberately NOT checked here -- reserve_product_stock (below)
-      // does the real, concurrency-safe atomic check-and-reserve.
-      verifiedCart.push({ id: item.id, price, qty: item.qty, isGiftCard: false, shipping_charge: Number(product.shipping_charge) || 0 });
-      verifiedItemsForClient.push({ id: item.id, size: item.size, isGiftCard: false, price, qty: item.qty, name: product.name, cat: product.cat });
+      const chain = categoryChain(categories, product.category_id);
+      const label = variant.label && variant.label !== 'Default' ? variant.label : '';
+      verifiedCart.push({
+        id: item.id, variantId: variant.id, price, qty: item.qty, isGiftCard: false,
+        categoryIds: categoryIdsWithAncestors(categories, product.category_id),
+        freeShipping: !!product.free_shipping, codAllowed: product.cod_allowed !== false,
+      });
+      verifiedItemsForClient.push({
+        id: item.id, variantId: variant.id, sku: variant.sku || null, isGiftCard: false,
+        name: product.name, variantLabel: label, options: variant.options || {},
+        price, mrp: variant.mrp != null && Number(variant.mrp) > price ? Number(variant.mrp) : null, qty: item.qty,
+        cat: product.cat, brand: product.brand || null,
+        image: variant.image_url || (Array.isArray(product.images) ? product.images[0] : null) || null,
+        gstRate: resolveGstRate({ product, categoryChain: chain, defaultRate: defaultGst }),
+        hsn: resolveHsn({ product, categoryChain: chain }),
+        returnWindowDays: product.return_window_days != null ? Number(product.return_window_days) : defaultReturnDays,
+        freeShipping: !!product.free_shipping,
+      });
     }
     cartSubtotal = cartSubtotalOf(verifiedCart);
+
+    // ---- Cash on Delivery eligibility (only ever when the store switched it on)
+    if (paymentMethod === 'cod') {
+      if (!brand.cod_enabled) { res.status(400).json({ error: 'Cash on Delivery is not available right now.' }); return; }
+      if (verifiedCart.some(i => i.isGiftCard)) { res.status(400).json({ error: 'Gift cards must be paid online.' }); return; }
+      if (verifiedCart.some(i => i.codAllowed === false)) { res.status(400).json({ error: 'Cash on Delivery is not available for one of the items in your cart.' }); return; }
+    }
 
     if (couponCode) {
       const { data } = await supabase.from('coupons').select('*').eq('code', String(couponCode).toUpperCase()).eq('active', true).maybeSingle();
       if (data) {
-        const eligible = couponEligibleFor(verifiedCart, data);
-        const maxUses = Number(eligible?.max_uses);
-        const capReached = Number.isFinite(maxUses) && maxUses > 0 && Number(eligible?.times_used || 0) >= maxUses;
-        if (eligible && !capReached) couponCandidate = eligible;
+        // first-order / per-customer rules need the customer's order history -- only fetched when the
+        // coupon actually has such a rule and we know who the customer is.
+        let userOrderCount = null, userUses = null;
+        const identityBound = data.first_order_only || Number(data.per_user_limit) > 0;
+        if (identityBound && !ownerId) {
+          // "first order" / "once per customer" cannot be checked for a guest (a new tab is a new guest), so
+          // these coupons need a signed-in account.
+          couponNote = 'Sign in to use this coupon.';
+        } else {
+          if (identityBound) {
+            const orders = () => supabase.from('orders').select('id', { count: 'exact', head: true }).eq('user_id', ownerId).neq('status', 'Cancelled');
+            // other checkouts of this customer that are still open -- never this attempt itself (a retry reuses its key)
+            const pend = () => supabase.from('pending_orders').select('id', { count: 'exact', head: true }).eq('user_id', ownerId).in('status', ['reserving', 'reserved']).neq('checkout_attempt_key', checkoutAttemptKey);
+            const [{ count: total }, { count: used }, { count: pendingAll }, { count: pendingSame }] = await Promise.all([
+              orders(), orders().eq('coupon_code', data.code), pend(), pend().eq('computed->>couponCode', data.code),
+            ]);
+            // checkouts still being paid count too, so two parallel checkouts cannot both pass a "once" rule
+            userOrderCount = (total ?? 0) + (pendingAll ?? 0);
+            userUses = (used ?? 0) + (pendingSame ?? 0);
+          }
+          const problem = couponProblem(verifiedCart, data, { userOrderCount, userUses });
+          if (problem) couponNote = problem; else couponCandidate = data;
+        }
+      } else {
+        couponNote = 'Invalid or expired coupon code.';
       }
     }
 
@@ -239,8 +300,6 @@ export default async function handler(req, res) {
     res.status(500).json({ error: 'Could not verify your cart. Please try again.' });
     return;
   }
-
-  const shipping = getShippingCost(verifiedCart);
 
   // ==== CLAIM THIS CHECKOUT ATTEMPT -- atomically, BEFORE touching any coupon use counter,
   // gift-card balance or stock. checkoutAttemptKey is the idempotency boundary: whichever
@@ -302,6 +361,11 @@ export default async function handler(req, res) {
       // Replay the original result instead of redoing any work. The blob is a pure function
       // of computed+receipt+razorpay_order_id, so re-signing (with a fresh issue time) is exact.
       const stillPlaceholder = String(existing.razorpay_order_id || '').startsWith('attempt:');
+      if (existing.computed?.paymentMethod === 'cod') {
+        const { blob: codBlob, blobSig: codSig } = issueBlob({ computed: existing.computed, receipt: existing.receipt, razorpay_order_id: null }, keySecret);
+        res.status(200).json({ cod: true, receipt: existing.receipt, blob: codBlob, blobSig: codSig, ...existing.computed });
+        return;
+      }
       if (stillPlaceholder && Number(existing.computed?.computedTotal) > 0) {
         // A paid checkout whose Razorpay order was never created (its holds were already given
         // back) -- nothing valid to replay. expired:true tells the client to mint a fresh key.
@@ -397,6 +461,11 @@ export default async function handler(req, res) {
       discount = 0;
     }
 
+    // ---- Shipping: its own visible line, from the delivery address and the cart value (before coupons) ----
+    const shipQuote = shippingFor({ cart: verifiedCart, address: addr, brand, paymentMethod });
+    const shipping = shipQuote.fee;
+    const codFee = shipQuote.codFee;
+
     // ---- Reserve (debit) the gift card atomically, before any payment exists ----
     // The ceiling is what this ORDER can absorb (merchandise + shipping - discount) -- passed with
     // an unbounded balance so the card's own (possibly stale) balance is never baked into it.
@@ -405,7 +474,7 @@ export default async function handler(req, res) {
     let giftCard = null;
     let giftCardApplied = 0;
     if (giftCardCandidate) {
-      const ceiling = giftCardAppliedOf({ balance: Infinity }, verifiedCart, shipping, discount);
+      const ceiling = giftCardAppliedOf({ balance: Infinity }, verifiedCart, shipping + codFee, discount);
       if (ceiling > 0) {
         const redeemResult = await redeemGiftCardBalance(supabase, giftCardCandidate.code, ceiling);
         if (redeemResult.ok) {
@@ -417,18 +486,47 @@ export default async function handler(req, res) {
       }
     }
 
-    const total = Math.max(0, cartSubtotal + shipping - discount - giftCardApplied);
+    const total = Math.max(0, cartSubtotal + shipping + codFee - discount - giftCardApplied);
+
+    // Cash on Delivery has a ceiling (cod_max_order) -- checked on the real payable amount.
+    if (paymentMethod === 'cod' && Number(brand.cod_max_order) > 0 && total > Number(brand.cod_max_order)) {
+      await releaseReservedCoupon();
+      await releaseDebitedGiftCard();
+      await abortClaim();
+      res.status(400).json({ error: `Cash on Delivery is available up to ₹${Number(brand.cod_max_order)}. Please pay online for this order.` });
+      return;
+    }
+
+    // Each line records its own share of the coupon, so a return refunds exactly what was paid for that line
+    // (a coupon may cover only some items).
+    const lineDiscounts = couponLineDiscounts(verifiedCart, coupon, discount);
+    verifiedItemsForClient.forEach(v => { if (!v.isGiftCard) v.lineDiscount = lineDiscounts[v.variantId] || 0; });
+
+    // GST is already inside every price; this only records how much of the order is tax, for the invoice.
+    const taxCalc = computeTax({
+      lines: verifiedItemsForClient.filter(v => !v.isGiftCard).map(v => ({ key: v.variantId, name: v.name, hsn: v.hsn, qty: v.qty, price: v.price, gstRate: v.gstRate, lineDiscount: v.lineDiscount })),
+      discount, shipping: shipping + codFee,
+      shippingRate: Number(brand.default_gst_rate ?? 18),
+      sellerState: brand.seller_state, buyerState: addr.state,
+    });
 
     const computed = {
       computedSubtotal: cartSubtotal,
       computedShipping: shipping,
+      computedCodFee: codFee,
       computedDiscount: discount,
       computedGiftCardApplied: giftCardApplied,
+      computedTax: taxCalc.totals.tax,
       computedTotal: total,
+      paymentMethod,
       couponValid: !!coupon,
       couponCode: coupon?.code || null,
+      couponNote: coupon ? null : couponNote,
       giftCardValid: !!giftCard,
       giftCardCode: giftCard?.code || null,
+      freeShippingAway: shipQuote.away,
+      // The delivery zone the fee was priced for; the verify endpoints refuse a different address.
+      shipTo: { city: String(addr.city).trim().toLowerCase(), state: String(addr.state || '').trim().toLowerCase(), pincode: String(addr.pincode || '').trim() },
       verifiedItems: verifiedItemsForClient,
     };
 
@@ -459,7 +557,7 @@ export default async function handler(req, res) {
     }
 
     // ---- Reserve stock atomically -- this *is* the real inventory decrement ----
-    const stockItems = verifiedItemsForClient.filter(v => !v.isGiftCard).map(v => ({ id: v.id, size: v.size || null, qty: v.qty }));
+    const stockItems = verifiedItemsForClient.filter(v => !v.isGiftCard).map(v => ({ id: v.id, variantId: v.variantId, qty: v.qty }));
     if (stockItems.length > 0) {
       const { error: reserveError } = await supabase.rpc('reserve_product_stock', {
         p_checkout_attempt_key: checkoutAttemptKey, p_items: stockItems, p_timeout_minutes: RESERVATION_TIMEOUT_MINUTES,
@@ -495,6 +593,13 @@ export default async function handler(req, res) {
     if (total <= 0) {
       const { blob: blobStr, blobSig } = issueBlob({ computed, receipt, razorpay_order_id: null }, keySecret);
       res.status(200).json({ free: true, receipt, blob: blobStr, blobSig, ...computed });
+      return;
+    }
+    // Cash on Delivery: nothing to charge now. The signed blob is the proof the server priced this cart
+    // as COD; api/verify-free-order.js turns it into the order exactly like a fully-covered one.
+    if (paymentMethod === 'cod') {
+      const { blob: blobStr, blobSig } = issueBlob({ computed, receipt, razorpay_order_id: null }, keySecret);
+      res.status(200).json({ cod: true, receipt, blob: blobStr, blobSig, ...computed });
       return;
     }
 

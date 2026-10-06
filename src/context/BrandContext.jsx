@@ -61,12 +61,6 @@ export function BrandProvider({ children }) {
     home_ig_followers: '',
     // Tagline shown just below the Featured Products showcase
     home_tagline_heading: "Shop smart. Shop Brightlight.",
-    // Category taxonomy (masters/groups shown in the nav mega-menu and Shop filter).
-    // null = use the built-in default in data/products.js until an admin customizes it.
-    category_taxonomy: null,
-    // Which category items show a "Coming Soon" badge instead of linking to the Shop filter.
-    // null = use the built-in default (COMING_SOON_CATEGORIES in data/products.js) until an admin customizes it.
-    coming_soon_categories: null,
     // Gift card page settings
     giftcard_enabled: true,
     giftcard_min: DEFAULT_GIFTCARD_MIN,
@@ -74,8 +68,25 @@ export function BrandProvider({ children }) {
     giftcard_description: "A Brightlight Solutions gift card lets someone choose exactly what they love. Pick an amount, and we'll take care of the rest.",
     // Delivery estimate settings — cities in this list get each product's base
     // delivery_min_days/delivery_max_days; anywhere else gets that plus delivery_extra_days.
-    delivery_metro_cities: 'Tiruppur, Coimbatore, Chennai, Bangalore, Bengaluru, Hyderabad, Mumbai, Pune, Delhi, New Delhi, Kolkata',
+    delivery_metro_cities: 'Delhi, New Delhi, Mumbai, Bengaluru, Bangalore, Chennai, Hyderabad, Kolkata, Pune, Ahmedabad',
     delivery_extra_days: 3,
+    // Shipping, payments, tax and returns (Admin -> Settings). Same defaults as the settings columns in
+    // supabase/schema.sql so the site behaves identically before the row loads.
+    free_shipping_threshold: 499,   // cart value (before coupons) at or above which delivery is free; 0 = no threshold
+    shipping_fee_metro: 40,
+    shipping_fee_other: 60,
+    cod_enabled: false,
+    cod_fee: 0,
+    cod_max_order: 5000,
+    return_window_days: 7,
+    low_stock_threshold: 5,
+    default_gst_rate: 18,
+    seller_legal_name: '',
+    seller_gstin: '',
+    seller_state: 'Tamil Nadu',
+    gift_card_validity_months: 6,
+    support_email: '',
+    support_phone: '',
     // Homepage hero slider -- applies to the whole slider, not per-slide (the
     // slides share one timer and one set of nav controls).
     hero_slider_interval_ms: 4000,
@@ -107,8 +118,10 @@ export function BrandProvider({ children }) {
   }, []);
 
   async function updateBrand(updates) {
-    const { error } = await supabase.from('settings').upsert({ id: 'brand', ...updates });
+    const { data, error } = await supabase.from('settings').upsert({ id: 'brand', ...updates }).select('id');
     if (error) throw error;
+    // An update that row-level security quietly refuses reports no error and no rows -- never say "saved" then.
+    if (!data?.length) throw new Error('Nothing was saved. Please check that you are signed in as the store admin.');
     setBrand(b => ({ ...b, ...updates }));
   }
 

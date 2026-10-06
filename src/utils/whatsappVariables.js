@@ -4,6 +4,9 @@
 // own currency symbol) and doesn't need email-only ones (subtotal, discount,
 // invoice_number, ...). Both read from the same real `orders` row shape
 // (see src/utils/orderWrite.js's insert), so nothing here is invented.
+import { COMPANY } from '../config/company.js';
+import { paymentMethodText, shippingAddressText, itemsSummaryText } from './emailVariables.js';
+
 function fmtDateShort(iso) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -22,7 +25,12 @@ export const WHATSAPP_VARIABLES = [
   // orders has no actual-delivered-date column -- always resolves to today,
   // the moment this message is sent (Set & Notify is a manual, in-the-moment
   // action, so "today" is the real delivery-confirmation date in practice).
-  { key: 'delivery_date', label: 'Delivery Date', resolve: () => fmtDateShort(new Date().toISOString()), note: 'No actual-delivered-date column exists -- always resolves to today, at send time.' },
+  { key: 'delivery_date', label: 'Delivery Date', resolve: o => fmtDateShort(o.delivered_at || new Date().toISOString()), note: 'The recorded delivery date; today when not recorded yet.' },
+  { key: 'items_summary', label: 'Items (one line)', resolve: o => itemsSummaryText(o) },
+  { key: 'payment_method', label: 'Payment Method', resolve: o => paymentMethodText(o) },
+  { key: 'shipping_address', label: 'Shipping Address', resolve: o => shippingAddressText(o) },
+  { key: 'cancel_reason', label: 'Cancellation Reason', resolve: o => o._extra?.cancelReason || o.cancel_reason || '' },
+  { key: 'refund_amount', label: 'Refund Amount (number only)', resolve: o => { const v = o._extra?.refundAmount ?? o.refunded_amount; return Number(v) > 0 ? Number(v).toLocaleString('en-IN') : ''; } },
   // Reuses api/product-share.js (built for the customer-facing enquiry
   // flow) keyed off the order's first item's product id -- WhatsApp's
   // crawler needs a page with real Open Graph tags to render a photo
@@ -32,7 +40,7 @@ export const WHATSAPP_VARIABLES = [
   // would need a way to read order data publicly). Blank for a gift-card-only
   // order or one with no items, so a template using this token just shows no
   // link rather than a broken one.
-  { key: 'photo_url', label: 'Product Photo Link (shows a photo preview in WhatsApp)', resolve: o => (Array.isArray(o.items) && o.items[0]?.id) ? `https://www.brightlightsolutions.in/api/product-share?id=${o.items[0].id}` : '' },
+  { key: 'photo_url', label: 'Product Photo Link (shows a photo preview in WhatsApp)', resolve: o => (Array.isArray(o.items) && o.items[0]?.id && !o.items[0].isGiftCard) ? `${COMPANY.website}/api/product-share?id=${o.items[0].id}` : '' },
   // Used only by PRODUCT_ENQUIRY_RECEIVED (api/send-enquiry-whatsapp.js),
   // which passes a plain { user_phone, product_name } object into
   // sendWhatsAppTemplate rather than a real `orders` row -- harmless no-op

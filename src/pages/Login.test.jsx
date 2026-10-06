@@ -7,8 +7,9 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const mockLoginMobile = jest.fn();
 const mockLoginEmail = jest.fn();
+const mockGoogle = jest.fn();
 jest.mock('../context/AuthContext', () => ({
-  useAuth: () => ({ loginWithEmail: mockLoginEmail, loginWithMobileToken: mockLoginMobile, loginWithGoogle: jest.fn(), resetPassword: jest.fn() }),
+  useAuth: () => ({ loginWithEmail: mockLoginEmail, loginWithMobileToken: mockLoginMobile, loginWithGoogle: (...a) => mockGoogle(...a), resetPassword: jest.fn() }),
 }));
 jest.mock('react-hot-toast', () => ({ __esModule: true, default: { success: jest.fn(), error: jest.fn() } }));
 const mockOpen = jest.fn();
@@ -24,10 +25,10 @@ import Login from './Login';
 
 let container, root;
 const flush = () => act(async () => { await new Promise(r => setTimeout(r, 0)); });
-const renderLogin = async () => {
+const renderLogin = async (entry = '/login') => {
   container = document.createElement('div'); document.body.appendChild(container);
   root = createRoot(container);
-  await act(async () => { root.render(<MemoryRouter initialEntries={['/login']}><Login /></MemoryRouter>); });
+  await act(async () => { root.render(<MemoryRouter initialEntries={[entry]}><Login /></MemoryRouter>); });
 };
 const byText = (sel, re) => [...container.querySelectorAll(sel)].find(e => re.test(e.textContent || e.getAttribute('aria-label') || ''));
 const click = async (el) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); await flush(); };
@@ -159,4 +160,18 @@ test('leaving the page cancels the widget session', async () => {
   await renderLogin();
   await act(async () => root.unmount()); root = null;
   expect(mockCancel).toHaveBeenCalled();
+});
+
+test('Google sign-in carries the page the customer was sent from (so they come back to it)', async () => {
+  mockGoogle.mockResolvedValue(undefined);
+  await renderLogin({ pathname: '/login', state: { from: { pathname: '/checkout', search: '?step=2' } } });
+  await click(byText('button', /continue with google/i));
+  expect(mockGoogle).toHaveBeenCalledWith('/checkout?step=2');
+});
+
+test('Google sign-in with no remembered page falls back to the account page', async () => {
+  mockGoogle.mockResolvedValue(undefined);
+  await renderLogin();
+  await click(byText('button', /continue with google/i));
+  expect(mockGoogle).toHaveBeenCalledWith('/account');
 });

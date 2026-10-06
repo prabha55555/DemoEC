@@ -197,7 +197,6 @@ export default async function handler(req, res) {
       paymentKey: paymentId,
       computed: pending.computed,
       receipt: pending.receipt,
-      status: 'Paid',
       paymentId,
       razorpayOrderId,
       cart: pending.cart,
@@ -215,6 +214,12 @@ export default async function handler(req, res) {
       // call won the race in the few seconds between payment and this
       // webhook delivery -- expected and harmless, not a real failure.
       res.status(200).json({ ok: true, recovered: false, reason: result.error });
+      return;
+    }
+
+    // The browser-driven request wrote this order moments ago (and already sent its messages).
+    if (result.alreadyProcessed) {
+      res.status(200).json({ ok: true, recovered: false, reason: 'already processed' });
       return;
     }
 

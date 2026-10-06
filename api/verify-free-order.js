@@ -1,19 +1,21 @@
-// The zero-total counterpart of api/razorpay-verify-payment.js -- reached when a
-// coupon and/or gift card covers a cart entirely, so there's no Razorpay payment
-// to check. The blob's HMAC (signed in api/razorpay-create-order.js) is the proof
-// here instead of a Razorpay signature: it's server-issued and can't be forged
-// without RAZORPAY_KEY_SECRET, so a client can't hand-craft a "total is 0" claim.
+// The no-payment counterpart of api/razorpay-verify-payment.js -- reached when a
+// coupon and/or gift card covers a cart entirely (zero total), or when the customer chose
+// Cash on Delivery, so there's no Razorpay payment to check. The blob's HMAC (signed in
+// api/razorpay-create-order.js) is the proof here instead of a Razorpay signature: it's
+// server-issued and can't be forged without RAZORPAY_KEY_SECRET, so a client can't hand-craft
+// a "total is 0" or "this is a COD order" claim.
 // Same replay guard and order write as the paid path (src/utils/orderWrite.js).
 import { createClient } from '@supabase/supabase-js';
 import { readBlob } from '../src/utils/signedToken.js';
 import { writeVerifiedOrder } from '../src/utils/orderWrite.js';
-import { sanitizeOrderFields } from '../src/utils/orderInput.js';
+import { sanitizeOrderFields, sanitizeEmail, shipToMatches } from '../src/utils/orderInput.js';
+import { sendWhatsAppOrderConfirmation } from '../src/utils/sendWhatsAppConfirmation.js';
 
 const supabase = createClient(process.env.REACT_APP_SUPABASE_URL, process.env.REACT_APP_SUPABASE_ANON_KEY);
 
 // See api/razorpay-verify-payment.js's identical config -- writeVerifiedOrder()
 // can now spend up to ~12s on the automatic ORDER_CONFIRMED email attempt.
-export const config = { maxDuration: 20 };
+export const config = { maxDuration: 30 };
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -29,7 +31,7 @@ export default async function handler(req, res) {
 
   const { receipt, blob, blobSig } = req.body || {};
   const { cart, addr, billAddr, userName, userPhone, estimatedDelivery } = sanitizeOrderFields(req.body);
-  const userEmail = req.body?.userEmail;
+  const userEmail = sanitizeEmail(req.body?.userEmail) || null;
 
   if (!receipt || !blob || !blobSig) {
     res.status(400).json({ verified: false, error: 'Missing verification details.' });
@@ -72,7 +74,12 @@ export default async function handler(req, res) {
       return;
     }
     const { computed } = parsedBlob;
-    if (Number(computed.computedTotal) > 0) {
+    if (!shipToMatches(computed.shipTo, addr)) {
+      res.status(400).json({ verified: false, error: 'Your delivery address changed after pricing. Please start checkout again.' });
+      return;
+    }
+    const isCod = computed.paymentMethod === 'cod' && Number(computed.computedTotal) > 0;
+    if (Number(computed.computedTotal) > 0 && !isCod) {
       res.status(400).json({ verified: false, error: 'This order was not fully covered. Please try again.' });
       return;
     }
@@ -84,7 +91,7 @@ export default async function handler(req, res) {
     // the used_payments claim), so there is no separate check-then-claim window to race in.
     const result = await writeVerifiedOrder({
       paymentKey: `free:${receipt}`,
-      computed, receipt, status: 'Paid',
+      computed, receipt,
       paymentId: null, razorpayOrderId: null,
       cart, addr, billAddr, userId: ownerId, userEmail: ownerEmail, userName, userPhone, estimatedDelivery,
       requireLiveReservation: true,
@@ -93,6 +100,8 @@ export default async function handler(req, res) {
       res.status(409).json({ verified: false, error: result.error });
       return;
     }
+    // Same WhatsApp confirmation a paid order gets (never throws, never delays the response past its own timeout).
+    if (!result.alreadyProcessed) await sendWhatsAppOrderConfirmation(result.order);
     res.status(200).json({ verified: true, order: result.order });
   } catch (err) {
     console.error('verify-free-order failed:', err);

@@ -4,9 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { recordWhatsAppEnquiry } from '../utils/enquiryBeacon';
 import { whatsappLink, DEFAULT_WA_MESSAGE } from '../config/company';
 
-// Bottom-left, not bottom-right -- react-hot-toast's toasts already live bottom-right
-// (see App.jsx's <Toaster position="bottom-right" />), and this button is permanent
-// while toasts are transient, so it's the button that should stay out of the way.
+// A site-wide "chat with support" button, bottom-right (toasts appear bottom-centre, and the footer's
+// payment/legal lines sit bottom-left, so this corner is the one that hides nothing).
 // On mobile it floats above the fixed bottom tab bar.
 export default function FloatingWhatsApp() {
   const { currentUser } = useAuth();
@@ -26,7 +25,7 @@ export default function FloatingWhatsApp() {
       </a>
       <style>{`
         .floating-wa-btn {
-          position: fixed; left: clamp(14px,3vw,26px); bottom: clamp(14px,3vw,26px); z-index: 400;
+          position: fixed; right: clamp(14px,3vw,26px); bottom: clamp(14px,3vw,26px); z-index: 400;
           height: 52px; padding: 0 20px 0 14px; border-radius: 100px; background: #25D366; color: #fff;
           display: flex; align-items: center; gap: 10px; text-decoration: none;
           box-shadow: 0 6px 18px rgba(20,17,11,.28); transition: transform .2s, box-shadow .2s;
@@ -36,7 +35,7 @@ export default function FloatingWhatsApp() {
           .floating-wa-btn:hover { transform: scale(1.06); box-shadow: 0 8px 24px rgba(20,17,11,.36); }
         }
         @media (max-width: 899px) {
-          .floating-wa-btn { left: auto; right: 14px; bottom: calc(var(--bottom-nav-h) + 14px + env(safe-area-inset-bottom, 0px)); width: 50px; height: 50px; padding: 0; justify-content: center; }
+          .floating-wa-btn { right: 14px; bottom: calc(var(--bottom-nav-h) + 14px + env(safe-area-inset-bottom, 0px)); width: 50px; height: 50px; padding: 0; justify-content: center; }
           .floating-wa-label { display: none; }
         }
       `}</style>

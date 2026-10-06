@@ -1,36 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, isAdminUser } from '../context/AuthContext';
 import AuthShell, { AuIcon } from '../components/AuthShell';
+import useDocumentTitle from '../admin/hooks/useDocumentTitle';
 
 // Same normalisation AuthContext's isAdminUser() applies -- a trimmed,
 // case-insensitive compare, so "Admin@Shop.com " is not rejected for typing.
 const norm = (s) => (s || '').trim().toLowerCase();
 
+// One wording for every failure that could reveal which address is the admin one.
 const GENERIC_LOGIN_ERROR = 'Login failed. Check your email and password.';
 
+// Where to go after signing in: the admin page the visitor was sent here from (AdminRoute passes it in
+// location.state.from), so a deep link like /admin/orders/BL-20001 survives the login. Only /admin paths are honoured.
+function destination(location) {
+  const from = location.state?.from;
+  const path = from?.pathname;
+  if (typeof path === 'string' && /^\/admin(\/|$)/.test(path) && !path.startsWith('/admin/login')) return `${path}${from.search || ''}`;
+  return '/admin';
+}
+
 export default function AdminLogin() {
+  useDocumentTitle('Admin sign in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { loginWithEmail, currentUser, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // If already logged in as admin, go to admin panel
+  // Already signed in as the admin: straight to the panel.
   useEffect(() => {
-    if (currentUser && isAdmin) {
-      navigate('/admin');
-    }
-  }, [currentUser, isAdmin, navigate]);
+    if (currentUser && isAdmin) navigate(destination(location), { replace: true });
+  }, [currentUser, isAdmin, navigate, location]);
 
   async function handleLogin(e) {
     e.preventDefault();
     if (!email || !password) { setError('Please enter email and password.'); return; }
 
-    // Skips a pointless auth round-trip for any other address. Deliberately the
-    // same wording as a wrong password, so this form never confirms which
-    // address is the admin one. The server (RLS + requireAdmin) is what
+    // Skips a pointless auth round-trip for any other address. Deliberately the same wording as a wrong password,
+    // so this form never confirms which address is the admin one. The server (RLS + requireAdmin) is what
     // actually decides -- this is only a courtesy check.
     const adminEmail = norm(process.env.REACT_APP_ADMIN_EMAIL);
     if (!adminEmail || norm(email) !== adminEmail) {
@@ -42,18 +52,17 @@ export default function AdminLogin() {
     try {
       const data = await loginWithEmail(email.trim(), password);
       if (!isAdminUser(data?.user)) {
-        // Signed in, but not as a confirmed admin account -- the effect above
-        // will never navigate, so don't leave the button spinning forever.
-        // The password was right (sign-in succeeded) but the account's email isn't confirmed --
-        // say so plainly instead of the wrong-password wording, and don't leave a live session
-        // behind that can never open the panel.
+        // Signed in, but not as a confirmed admin account -- the effect above will never navigate, so don't leave
+        // the button spinning. A right password with an unconfirmed email gets the specific message (the address is
+        // already known to be the admin one at this point); anything else gets the generic wording. Either way no
+        // live session is left behind that can never open the panel.
         setError(data?.user && !data.user.email_confirmed_at
           ? 'Signed in, but the email on this account is not confirmed. Confirm it in Supabase (Authentication > Users) and try again.'
           : GENERIC_LOGIN_ERROR);
         setLoading(false);
         try { await logout(); } catch { /* best-effort */ }
       }
-      // otherwise navigate happens in the useEffect above when currentUser updates
+      // otherwise the effect above navigates once currentUser updates
     } catch (err) {
       setError(err.message || GENERIC_LOGIN_ERROR);
       setLoading(false);
@@ -64,8 +73,8 @@ export default function AdminLogin() {
     <AuthShell
       bare
       title="Admin sign in"
-      subtitle="Brightlight Solutions store administration. Authorised staff only."
-      footer={<a href="/">Return to website</a>}
+      subtitle="Store administration. Authorised staff only."
+      footer={<a href="/">Return to the store</a>}
       trust="Access is restricted and monitored."
     >
       {error && (
@@ -74,7 +83,7 @@ export default function AdminLogin() {
         </div>
       )}
 
-      <form onSubmit={handleLogin}>
+      <form onSubmit={handleLogin} noValidate>
         <div className="au-field">
           <label htmlFor="admin-email" className="au-label">Admin email</label>
           <div className="au-inwrap">
@@ -84,7 +93,7 @@ export default function AdminLogin() {
               type="email" value={email}
               onChange={e => setEmail(e.target.value)}
               autoComplete="email" inputMode="email" enterKeyHint="next"
-              autoCapitalize="none" spellCheck={false}
+              autoCapitalize="none" spellCheck={false} autoFocus
               aria-invalid={error ? 'true' : undefined}
               aria-describedby={error ? 'admin-login-error' : undefined}
               placeholder="admin@example.com"

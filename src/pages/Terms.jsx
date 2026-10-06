@@ -1,156 +1,130 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { useBrand } from '../context/BrandContext';
 import { COMPANY } from '../config/company';
+import { returnWindowDays } from '../utils/storeCopy';
 import { usePageMeta } from '../utils/usePageMeta';
 import { LegalLayout, LegalSection, LegalCallout } from '../components/LegalLayout';
 
 const N = COMPANY.name;
+const link = { color: 'var(--primary)', fontWeight: 500 };
 
-const SECTIONS = [
-  {
-    title: `1. About ${N}`,
-    body: [
-      `${N} operates this online store from Tiruppur, Tamil Nadu, offering a range of products across multiple categories.`,
-      `These terms apply to your use of this website and to every order placed through it.`,
-    ]
-  },
-  {
-    title: '2. Product Information',
-    body: `All products listed on our website are genuine. Descriptions of specifications, features and compatibility are provided in good faith based on information available to us from manufacturers and suppliers. ${N} does not guarantee specific results or performance unless explicitly stated. Minor variations in colour, finish, and packaging are normal and do not constitute defects.`
-  },
-  {
-    title: '3. Pricing & Payment',
-    body: `All prices are listed in Indian Rupees (INR) inclusive of applicable taxes. Prices are subject to change without prior notice. Payment is accepted via UPI, debit card, credit card, and net banking through our secure payment gateway. For enquiry-only products, pricing is shared directly via WhatsApp after reviewing your requirements and delivery location.`
-  },
-  {
-    title: '4. Orders & Confirmation',
-    body: `An order is confirmed only after successful payment and a confirmation message from ${N}. We reserve the right to cancel any order in case of pricing errors, stock discrepancy, or suspected fraudulent activity. In such cases, a full refund will be processed within 5–7 business days.`
-  },
-  {
-    title: '5. Shipping & Delivery',
-    body: `We ship worldwide, with delivery timelines varying by location and product. Fragile items are carefully packed in protective materials. Risk of loss or damage passes to the buyer upon handover to the courier. ${N} is not liable for delays caused by courier partners, natural events, or customs clearance. See our Shipping Policy page for detailed timelines.`
-  },
-  {
-    title: '6. Availability',
-    body: `All products are subject to availability. We make reasonable efforts to keep availability information updated, but an item may become unavailable before the website is updated. If an item becomes unavailable after payment, ${N} will contact you regarding the available resolution.`
-  },
-  {
-    title: '7. Returns, Exchanges & Damaged Items',
-    body: `All sales are final. ${N} does not accept returns or exchanges once an order has been delivered, except where an item is received broken or damaged during transit. Where damage is confirmed to have occurred during transit, we may offer a replacement, repair, refund, or other appropriate resolution at our discretion, subject to availability.`,
-    steps: [
-      'Record a continuous, unedited unboxing video showing the unopened package, the shipping label, all packaging, and the product being removed — this video is mandatory for any damage claim.',
-      'Please notify us within 24–48 hours of receiving your order, along with an unboxing video and clear photos of the damage. Returns will be accepted only for damaged products.',
-      'We review the evidence and get back to you with the resolution.',
-    ],
-    note: 'Claims without a valid, continuous unboxing video may not be accepted. This policy does not cover damage caused after delivery, misuse, improper handling, accidents, or normal wear and tear.'
-  },
-  {
-    title: '8. Copyright & Intellectual Property',
-    body: `All content and materials appearing on the ${N} website are protected by applicable copyright, trademark, and other intellectual property laws. Unless otherwise stated, the content is owned by ${N} or is used with the permission of the relevant rights holder. This includes, but is not limited to:`,
-    items: [
-      'Product photographs and original images',
-      'Product descriptions and written content',
-      'Logos, names, trademarks, and brand elements',
-      'Graphics, illustrations, and artwork',
-      'Website layout, visual presentation, and design',
-      'Digital catalogues and other materials created for ' + N,
-      'Any other original content published through our website or official digital channels',
-    ],
-  },
-  {
-    title: '9. Permitted Personal Use',
-    body: `You may access, view, and use the ${N} website and its content for your own personal, non-commercial purposes, including researching or considering a purchase. Such personal use does not give you ownership of, or any intellectual property rights in, the content.`
-  },
-  {
-    title: '10. Restrictions on Use',
-    body: `Unless you have received prior written permission from ${N}, you may not:`,
-    items: [
-      'Copy or reproduce our photographs, product images, descriptions, or other original content',
-      'Modify, edit, adapt, or create derivative works from our content',
-      'Re-publish or upload our content to another website, marketplace, catalogue, or platform',
-      'Use our photographs or descriptions to advertise, promote, or sell products belonging to another business',
-      `Use ${N} content for commercial purposes`,
-      'Distribute, sell, license, or otherwise exploit our content',
-      'Remove or alter copyright, trademark, branding, or other proprietary notices',
-      'Present our content, photographs, descriptions, or creative work as your own',
-    ],
-  },
-  {
-    title: '11. Product Photographs & Descriptions',
-    body: `Our product photographs and descriptions are created or commissioned for the presentation of ${N} products. They may not be copied or reused for other commercial listings, social media accounts, advertisements, catalogues, marketplaces, or competing businesses without our prior written consent. Permission to view or purchase a product does not grant permission to reproduce or commercially use the photographs, descriptions, or other content associated with that product.`
-  },
-  {
-    title: '12. Permission to Use Our Content',
-    body: `If you would like to reproduce, publish, feature, or otherwise use any ${N} content for a purpose beyond personal, non-commercial use, please contact us and obtain prior written permission. Any permission granted may be subject to specific conditions, including attribution, permitted duration, permitted platforms, and the particular content that may be used.`
-  },
-  {
-    title: '13. Enforcement of Rights',
-    body: `${N} reserves the right to take appropriate action where its copyrighted material, trademarks, photographs, written content, or other intellectual property is used without authorisation. We may request the removal of unauthorised copies or uses of our content and may pursue any other remedies available to us under applicable law.`
-  },
-  {
-    title: '14. Ownership',
-    body: `Nothing on the ${N} website should be interpreted as transferring ownership or intellectual property rights to any visitor or customer. The purchase of a product from ${N} gives the customer ownership of the purchased physical product, but does not transfer ownership of our photographs, product descriptions, branding, website content, or other intellectual property associated with that product. All rights not expressly granted under this policy are reserved by ${N}.`
-  },
-  {
-    title: '15. User Accounts',
-    body: `You are responsible for maintaining the confidentiality of your account credentials. ${N} reserves the right to suspend or terminate accounts used for fraudulent, abusive, or unauthorised activity.`
-  },
-  {
-    title: '16. Limitation of Liability',
-    body: `To the maximum extent permitted by law, ${N} shall not be liable for any indirect, incidental, or consequential damages arising from the use of our products or website. Our total liability to you shall not exceed the amount paid for the specific order in question.`
-  },
-  {
-    title: '17. Governing Law',
-    body: `These terms are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of courts in Tiruppur, Tamil Nadu.`
-  },
-  {
-    title: '18. Contact Us',
-    body: `For any questions regarding these Terms and Conditions, including returns, damage claims, or use of our content, please reach us at ${COMPANY.phoneDisplay} (call or WhatsApp) or ${COMPANY.email}. We are happy to clarify any aspect of our policies before you make a purchase.`
-  },
-];
-
-const slug = (t) => 'terms-' + t.split('.')[0];
-const TOC = SECTIONS.map(({ title }) => ({ id: slug(title), title }));
-
+// Terms of use and sale. Generic by design; the parts that depend on store settings (Cash on Delivery, the return
+// window, gift card validity) are read from them so the terms never contradict what the checkout does.
 export default function Terms() {
+  const { brand } = useBrand();
   usePageMeta({
     title: 'Terms & Conditions',
-    description: `Terms and Conditions for using the ${N} website and placing orders — returns, shipping, intellectual property and more.`,
+    description: `Terms and conditions for using the ${N} website and placing orders: pricing, orders, payments, delivery, returns and more.`,
     path: '/terms',
   });
-  return (
-    <LegalLayout
-      crumb="Terms & Conditions"
-      title="Terms & Conditions"
-      subtitle="The rules for using our website and placing orders."
-      updated="Last updated: August 2026"
-      toc={TOC}
-    >
-      <p style={{ margin: '0 0 18px' }}>Please read these Terms and Conditions carefully before using the {N} website. By accessing or placing an order, you agree to be bound by these terms — including our returns policy (section 7) and our copyright &amp; intellectual property policy (sections 8–14) below.</p>
 
-      {/* HIGHLIGHT BOX — all-sales-final / mandatory-unboxing-video policy */}
-      <LegalCallout tone="sun" icon="shield" title="Our return promise">
-        <p>All sales are final, except for products received <strong>broken or damaged in transit</strong> — reported with a mandatory continuous unboxing video. For everything else, we encourage you to speak with us directly before placing your order; we're happy to share detailed photos, videos, and product information beforehand.</p>
+  const days = returnWindowDays(null, brand);
+  const hasCod = !!brand.cod_enabled;
+  const giftMonths = Number(brand.gift_card_validity_months) || 0;
+  const seller = brand.seller_legal_name || N;
+  const email = brand.support_email || COMPANY.email;
+  const phone = brand.support_phone || COMPANY.phoneDisplay;
+
+  const sections = useMemo(() => [
+    {
+      id: 'about', title: '1. About these terms',
+      body: [
+        `These terms apply to your use of the ${N} website and to every order you place through it. The store is operated by ${seller}, ${COMPANY.addressOneLine}.`,
+        'By browsing the site, creating an account or placing an order you agree to these terms, our Shipping policy, our Returns & refunds policy and our Privacy policy. If you do not agree, please do not use the site.',
+      ],
+    },
+    {
+      id: 'account', title: '2. Your account',
+      body: 'You may need an account to place orders, track them and manage returns. Give accurate details and keep your sign-in details private; you are responsible for activity on your account. We may suspend or close accounts that are used for fraud, abuse or anything unlawful.',
+    },
+    {
+      id: 'products', title: '3. Products and pricing',
+      body: [
+        'We take care to describe products accurately, but photographs, colours and packaging can differ slightly from the item you receive. Specifications are supplied by brands and suppliers, and we update them when we are told of an error.',
+        'All prices are in Indian Rupees (INR) and include GST. Delivery fees, where they apply, are shown separately at checkout before you pay. Prices, discounts and availability can change without notice, but the price shown when you place your order is the price you pay.',
+        'If a product is listed at a clearly wrong price, we may cancel the order and refund you in full.',
+      ],
+    },
+    {
+      id: 'orders', title: '4. Orders and cancellation',
+      body: [
+        'Placing an order is an offer to buy. It is confirmed when payment succeeds (or, for Cash on Delivery, when we accept the order) and we send you a confirmation. We may refuse or cancel an order if an item is out of stock, a price is wrong, we cannot deliver to your address or we suspect fraud. You are refunded in full for anything you have already paid.',
+        'You can cancel an order yourself from Account → Orders until it is dispatched. After dispatch, see our Returns & refunds policy.',
+      ],
+    },
+    {
+      id: 'payments', title: '5. Payments',
+      body: [
+        `You can pay online by UPI, debit or credit card or net banking${hasCod ? ', or choose Cash on Delivery on eligible orders' : ''}. Online payments are processed securely by our payment partner; we do not store your card details.`,
+        ...(hasCod ? ['Cash on Delivery may carry a handling fee and is not available for every order or product. Any fee is shown at checkout.'] : []),
+        'Coupons and gift cards are applied at checkout subject to their own conditions, such as a minimum order value or an expiry date. Coupons have no cash value and cannot be combined unless stated.',
+        ...(giftMonths > 0 ? [`Gift cards are valid for ${giftMonths} months from the date of purchase.`] : []),
+      ],
+    },
+    {
+      id: 'shipping', title: '6. Shipping and delivery',
+      body: 'We deliver within India. Delivery charges, estimated delivery times, tracking and delivery attempts are explained in our Shipping policy. Estimated dates are not guarantees. Ownership and risk in the goods pass to you when they are delivered to you.',
+      link: { to: '/shipping-policy', label: 'Read the Shipping policy' },
+    },
+    {
+      id: 'returns', title: '7. Returns, refunds and replacements',
+      body: days > 0
+        ? `Most items can be returned within ${days} days of delivery, if they are unused and in their original condition. Items that arrive damaged, defective or wrong can always be returned for a replacement or refund. Some products are non-returnable, which is shown on their product page. Refunds are made to the original payment method.`
+        : 'Most items cannot be returned once delivered, but items that arrive damaged, defective or wrong can be returned for a replacement or refund. Refunds are made to the original payment method.',
+      link: { to: '/returns-policy', label: 'Read the Returns & refunds policy' },
+    },
+    {
+      id: 'reviews', title: '8. Reviews and your content',
+      body: 'Customers who have received a product can post a review. Reviews must be honest, relevant and lawful, and may be edited or removed if they are not. By posting you allow us to display your review on the site. Do not post anything abusive, misleading or that infringes anyone else’s rights.',
+    },
+    {
+      id: 'ip', title: '9. Our content and intellectual property',
+      body: [
+        `The ${N} name and logo, the design of the site, and the photographs, descriptions and other content we create are protected by copyright, trademark and other laws. Product names and brands belong to their owners.`,
+        'You may use the site and its content for your own personal, non-commercial use, including researching a purchase. You may not copy, scrape, re-publish or use our content commercially without our written permission.',
+      ],
+    },
+    {
+      id: 'use', title: '10. Acceptable use',
+      items: [
+        'Do not use the site for anything unlawful, or to harm or interfere with it or other users',
+        'Do not attempt to gain unauthorised access to accounts, systems or data',
+        'Do not use automated tools to collect content or place orders, or abuse offers, coupons or returns',
+        'Do not provide false information or impersonate anyone',
+      ],
+    },
+    {
+      id: 'liability', title: '11. Limitation of liability',
+      body: 'To the extent the law allows, we are not liable for indirect or consequential loss arising from your use of the site or products, or for delays and failures caused by events beyond our control, such as courier disruptions, weather or network outages. Our total liability for any order is limited to the amount you paid for it. Nothing in these terms limits your rights under Indian consumer protection law.',
+    },
+    {
+      id: 'law', title: '12. Governing law',
+      body: 'These terms are governed by the laws of India. Disputes are subject to the courts at Tiruppur, Tamil Nadu, without affecting any right you have to approach a consumer forum.',
+    },
+    {
+      id: 'changes', title: '13. Changes to these terms',
+      body: 'We may update these terms from time to time. The date at the top shows when they last changed, and orders are covered by the terms in force when they were placed.',
+    },
+    {
+      id: 'contact', title: '14. Contact us',
+      body: `Questions about these terms? Call ${phone} or write to ${email}.`,
+    },
+  ], [days, hasCod, giftMonths, seller, email, phone]);
+
+  const toc = useMemo(() => sections.map(({ id, title }) => ({ id: `terms-${id}`, title })), [sections]);
+
+  return (
+    <LegalLayout crumb="Terms & Conditions" title="Terms & Conditions" subtitle="The terms for using our website and placing orders." updated="Last updated: October 2026" toc={toc}>
+      <LegalCallout tone="mint" icon="info" title="In short">
+        <p>Prices include GST. {days > 0 ? `Most items can be returned within ${days} days. ` : ''}You can cancel an order until it is dispatched. Details are in our <Link to="/shipping-policy" style={link}>Shipping policy</Link> and <Link to="/returns-policy" style={link}>Returns &amp; refunds policy</Link>.</p>
       </LegalCallout>
 
-      {SECTIONS.map(({ title, body, items, steps, note }) => (
-        <LegalSection key={title} id={slug(title)} title={title}>
-          {body && (Array.isArray(body)
-            ? body.map((p, i) => <p key={i} style={{ marginBottom: i < body.length - 1 ? 10 : 0 }}>{p}</p>)
-            : <p>{body}</p>
-          )}
-          {items && (
-            <ul className="lg-list">
-              {items.map((item, i) => <li key={i}>{item}</li>)}
-            </ul>
-          )}
-          {steps && (
-            <ol className="lg-steps">
-              {steps.map((step, i) => (
-                <li key={i}><span>{String(i + 1).padStart(2, '0')}</span><span>{step}</span></li>
-              ))}
-            </ol>
-          )}
-          {note && <p className="lg-note">{note}</p>}
+      {sections.map(({ id, title, body, items, link: l }) => (
+        <LegalSection key={id} id={`terms-${id}`} title={title}>
+          {body && (Array.isArray(body) ? body : [body]).map((p, i) => <p key={i}>{p}</p>)}
+          {items && <ul className="lg-list">{items.map((it, i) => <li key={i}>{it}</li>)}</ul>}
+          {l && <p><Link to={l.to} style={link}>{l.label} &rsaquo;</Link></p>}
         </LegalSection>
       ))}
     </LegalLayout>

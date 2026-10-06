@@ -15,6 +15,8 @@
 // aren't stored on the order itself) must be resolved by the caller and
 // attached to `order` before this is called -- see
 // src/utils/sendOrderConfirmationEmail.js.
+import { COMPANY } from '../config/company.js';
+
 export const BLOCK_TYPES = [
   { type: 'heading', label: 'Heading', fields: ['text'] },
   { type: 'text', label: 'Text', fields: ['text'] },
@@ -36,14 +38,16 @@ export function emptyBlock(type) {
   return block;
 }
 
-// Replaces {{token}} with a resolved value -- an unknown token is left
-// visibly literal (never silently blanked), so a typo in a template is
-// obvious in preview rather than quietly dropping content.
+// Replaces {{token}} with a resolved value. A token that is NOT a known variable is left
+// visibly literal, so a typo in a template is obvious in preview rather than quietly dropping
+// content. A KNOWN variable with no value yet (tracking number before dispatch, refund amount on
+// a non-refund email) renders blank -- a customer must never receive a literal "{{tracking_number}}".
 export function interpolate(str, variables) {
   if (!str) return '';
   return String(str).replace(/\{\{\s*([a-z0-9_]+)\s*\}\}/gi, (match, key) => {
-    const v = variables?.[key];
-    return (v === undefined || v === null || v === '') ? match : String(v);
+    if (!variables || !Object.prototype.hasOwnProperty.call(variables, key)) return match;
+    const v = variables[key];
+    return (v === undefined || v === null) ? '' : String(v);
   });
 }
 
@@ -62,11 +66,11 @@ const CREAM = '#F1F8F6';     // page background
 const CARD = '#ffffff';      // card background -- white card on the off-white page
 const LINE = '#DCE9E6';      // hairline borders
 const GOLD = '#0F766E';      // primary CTA colour (Brightlight indigo; white text passes AA on it)
-const SITE_URL = 'https://www.brightlightsolutions.in';
-const SUPPORT_EMAIL = 'contact@brightlightsolutions.in';
-const COMPANY_NAME = 'Brightlight Solutions';
-const COMPANY_TAGLINE = 'Technology That Moves Business Forward';
-const COMPANY_ADDRESS = 'Kamatchi Amman Kovil Street, Kumarananthapuram, Tiruppur, Tamil Nadu 641602, India';
+const SITE_URL = COMPANY.website;
+const SUPPORT_EMAIL = COMPANY.email;
+const COMPANY_NAME = COMPANY.name;
+const COMPANY_TAGLINE = COMPANY.tagline;
+const COMPANY_ADDRESS = COMPANY.addressOneLine;
 
 // Email-safe system sans-serif stack -- no webfont dependency, so every mail
 // client renders the same typeface. FONT_BODY kept as its own name (rather
@@ -80,7 +84,7 @@ const FONT_BODY = FONT_DISPLAY;
 function renderLogoMark(brand) {
   const logoUrl = brand?.logo_url;
   const logoImg = logoUrl
-    ? `<img src="${escapeHtml(logoUrl)}" alt="Brightlight Solutions" height="40" style="height:40px;width:auto;display:block;margin:0 auto 10px;border:0;"/>`
+    ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(COMPANY_NAME)}" height="40" style="height:40px;width:auto;display:block;margin:0 auto 10px;border:0;"/>`
     : '';
   return `${logoImg}<span style="font-family:${FONT_DISPLAY};font-weight:bold;font-size:22px;color:${INK};letter-spacing:.01em;display:block;">${COMPANY_NAME}</span>`;
 }
@@ -99,10 +103,10 @@ function renderHero(variables, brand) {
   return `<tr><td align="center" style="padding:44px 32px 8px;background:${CARD};">
     <div style="font-family:${FONT_BODY};font-size:11px;font-weight:bold;letter-spacing:.24em;color:${GOLD};margin-bottom:16px;">ORDER CONFIRMED</div>
     <div style="font-family:${FONT_DISPLAY};font-size:27px;line-height:1.4;color:${INK};margin-bottom:14px;">Hi ${escapeHtml(variables.customer_name || 'there')},<br/>Your order is confirmed!</div>
-    <div style="font-family:${FONT_BODY};font-size:14.5px;line-height:1.7;color:${MUTED};max-width:420px;margin:0 auto 26px;">Thank you for shopping with Brightlight Solutions. We've received your order and will begin processing it right away.</div>
+    <div style="font-family:${FONT_BODY};font-size:14.5px;line-height:1.7;color:${MUTED};max-width:420px;margin:0 auto 26px;">Thank you for shopping with ${escapeHtml(COMPANY_NAME)}. We've received your order and will begin processing it right away.</div>
     <a href="${orderUrl}" style="display:inline-block;background:${GOLD};color:#fff;text-decoration:none;padding:13px 30px;font-family:${FONT_BODY};font-size:12px;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;">View Your Order</a>
     <div style="margin-top:14px;">${heroImage ? '' : `<a href="${SITE_URL}/shop" style="font-family:${FONT_BODY};font-size:12.5px;color:${MUTED};text-decoration:underline;">or Visit our store</a>`}</div>
-    ${heroImage ? `<div style="margin-top:28px;"><img src="${escapeHtml(heroImage)}" alt="Brightlight Solutions" style="width:100%;max-width:536px;display:block;border:1px solid ${LINE};"/></div>
+    ${heroImage ? `<div style="margin-top:28px;"><img src="${escapeHtml(heroImage)}" alt="${escapeHtml(COMPANY_NAME)}" style="width:100%;max-width:536px;display:block;border:1px solid ${LINE};"/></div>
     <div style="margin-top:14px;"><a href="${SITE_URL}/shop" style="font-family:${FONT_BODY};font-size:12.5px;color:${MUTED};text-decoration:underline;">or Visit our store</a></div>` : ''}
   </td></tr>`;
 }
@@ -137,7 +141,8 @@ function renderHelpSection() {
 
 function renderFooter(brand) {
   const links = [
-    ['Shipping & Returns', `${SITE_URL}/shipping-policy`],
+    ['Shipping', `${SITE_URL}/shipping-policy`],
+    ['Returns & Refunds', `${SITE_URL}/returns-policy`],
     ['Contact Us', `${SITE_URL}/contact`],
   ];
   const linksHtml = links.map(([label, href], i) => `${i > 0 ? `<span style="color:${LINE};"> &nbsp;|&nbsp; </span>` : ''}<a href="${href}" style="color:${MUTED};text-decoration:underline;">${escapeHtml(label)}</a>`).join('');
@@ -246,7 +251,7 @@ function renderOrderSummary(variables, order) {
       <td width="56" style="${cell}padding-left:0;" valign="top">${imgHtml}</td>
       <td style="${cell}" valign="top">
         <div style="font-family:${FONT_BODY};font-size:13.5px;color:${INK};">${escapeHtml(item.name || '')}</div>
-        ${item.size ? `<div style="font-family:${FONT_BODY};font-size:12px;color:${MUTED};margin-top:2px;">Size: ${escapeHtml(item.size)}</div>` : ''}
+        ${item.variantLabel ? `<div style="font-family:${FONT_BODY};font-size:12px;color:${MUTED};margin-top:2px;">${escapeHtml(item.variantLabel)}</div>` : (item.size ? `<div style="font-family:${FONT_BODY};font-size:12px;color:${MUTED};margin-top:2px;">Size: ${escapeHtml(item.size)}</div>` : '')}
         <div class="tt-mobile-only" style="display:none;font-family:${FONT_BODY};font-size:12px;color:${MUTED};margin-top:2px;">Qty: ${qty} &times; ${escapeHtml(fmtMoney(unit))}</div>
       </td>
       <td class="tt-hide-mobile" style="${cell}text-align:right;white-space:nowrap;" valign="top">
@@ -269,10 +274,13 @@ function renderOrderSummary(variables, order) {
   // check on the formatted value). Tax is never a real, separate line in this
   // business at all (prices are tax-inclusive site-wide) -- there is no raw
   // value to check, so it's simply never included.
+  const hasPhysical = items.some(i => !i.isGiftCard);
   const pricingRows = [
     ['Subtotal', variables.subtotal],
-    Number(order?.shipping) > 0 ? ['Shipping', variables.shipping] : null,
+    hasPhysical ? ['Shipping', Number(order?.shipping) > 0 ? variables.shipping : 'Free'] : null,
+    Number(order?.cod_fee) > 0 ? ['Cash on Delivery fee', variables.cod_fee] : null,
     Number(order?.discount) > 0 ? ['Discount', `− ${variables.discount}`] : null,
+    Number(order?.gift_card_applied) > 0 ? ['Gift card', `− ${variables.gift_card_applied}`] : null,
   ].filter(Boolean);
   const pricingHtml = pricingRows.map(([label, value]) => `
     <tr><td style="padding:4px 0;font-family:${FONT_BODY};font-size:13px;color:${MUTED};">${escapeHtml(label)}</td><td style="padding:4px 0;font-family:${FONT_BODY};font-size:13px;color:${INK};text-align:right;">${escapeHtml(value)}</td></tr>`).join('');

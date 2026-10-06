@@ -18,6 +18,11 @@
     "build": "react-scripts build",
     "test": "react-scripts test"
   },
+  "eslintConfig": {
+    "plugins": [
+      "react-hooks"
+    ]
+  },
   "browserslist": {
     "production": [
       ">0.2%",

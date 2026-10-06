@@ -1,8 +1,8 @@
 // Estimated delivery date range for a product, adjusted by shipping location.
 // Each product carries its own base min/max days (set in Admin); a configurable list of
 // metro cities gets that base estimate as-is, everywhere else adds a configurable buffer.
-// This is an honest estimate, not a live courier-tracked figure -- there's no courier API
-// wired in, so it's a business rule the admin controls, same spirit as the rest of the site.
+// This is an honest estimate, not a live courier-tracked figure -- there is no courier API
+// wired in, so it is a business rule the admin controls.
 
 const fmtDate = (d) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 
@@ -21,12 +21,7 @@ function addBusinessDays(date, days) {
   return result;
 }
 
-// Delivery is free on every order -- no flat per-order fee, and any product-level
-// shipping_charge is already folded into that product's own price (shown to the
-// customer as "Shipping included") rather than charged again here.
-export function getShippingCost(cart) {
-  return 0;
-}
+// Shipping FEES live in ./shipping.js. This file only estimates WHEN an order arrives.
 
 export function isMetroCity(city, brand) {
   if (!city) return true; // unknown location: show the optimistic/base estimate
@@ -38,8 +33,9 @@ export function isMetroCity(city, brand) {
 export function getDeliveryRange(product, brand, city) {
   // ?? (not ||) so an admin-set 0 (same-day/ready-stock item) survives -- 0 is
   // falsy, so || would silently coerce a deliberate 0 back to the default.
-  const baseMin = Number(product?.delivery_min_days ?? 5);
-  const baseMax = Number(product?.delivery_max_days ?? 8);
+  // Accepts a product row (delivery_min_days) or a cart line snapshot (deliveryMinDays).
+  const baseMin = Number(product?.delivery_min_days ?? product?.deliveryMinDays ?? 5);
+  const baseMax = Number(product?.delivery_max_days ?? product?.deliveryMaxDays ?? 8);
   const extra = isMetroCity(city, brand) ? 0 : (Number(brand?.delivery_extra_days) || 0);
   const minDays = baseMin + extra;
   const maxDays = baseMax + extra;

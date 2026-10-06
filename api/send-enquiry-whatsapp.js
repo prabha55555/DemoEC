@@ -52,7 +52,8 @@ const USER_WINDOW_MS = 60 * 60 * 1000;
 // One ack per phone per window, counted across every account that saved the same number -- an attacker
 // can make many accounts, but not many victims' worth of messages to one number.
 const PHONE_WINDOW_MS = 10 * 60 * 1000;
-const REASONS = { soldOut: 'soldOut', priceOnEnquiry: 'priceOnEnquiry', inStock: 'inStock' };
+// 'question' is a plain product question; 'priceOnEnquiry' is the old name for it (kept so an older bundle still works).
+const REASONS = { soldOut: 'soldOut', question: 'question', priceOnEnquiry: 'question', inStock: 'inStock' };
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
 
 function text(value, max) {
@@ -80,9 +81,9 @@ function cleanProductName(name) {
 
 function enquiryMessageFor(reason, productName, size) {
   const sizeNote = size ? ` (Option: ${size})` : '';
-  if (reason === 'soldOut') return 'Enquired about a sold-out product via WhatsApp.';
+  if (reason === 'soldOut') return 'Asked about an out-of-stock product via WhatsApp.';
   const bodies = {
-    priceOnEnquiry: `Hi,\nI'm interested in "${productName}"${sizeNote}.\nCould you please help me with my enquiry?`,
+    question: `Hi,\nI have a question about "${productName}"${sizeNote}.\nCould you please help me?`,
     inStock: `Hi,\nI'm interested in "${productName}"${sizeNote}.\nCould you please share the availability, price and more details about this product?`,
   };
   return bodies[reason] || bodies.inStock;
@@ -225,8 +226,9 @@ export default async function handler(req, res) {
 
   const productId = body.productId;
   const hasProduct = productId != null && productId !== '' && (typeof productId === 'string' || typeof productId === 'number');
-  const reason = REASONS[body.reason] ? body.reason : 'inStock';
-  const size = text(body.size, 60) || null;
+  const reason = REASONS[body.reason] ? REASONS[body.reason] : 'inStock';
+  // The chosen option, e.g. "M / Red" (`size` is the old field name).
+  const size = text(body.variant ?? body.size, 60) || null;
   // The general (non-product) WhatsApp buttons -- floating bubble, Help CTAs, the Contact
   // page's standalone WhatsApp link -- send a short fixed `source` label instead of a productId; see
   // src/utils/enquiryBeacon.js. Every caller of that helper passes a literal string, never user input.

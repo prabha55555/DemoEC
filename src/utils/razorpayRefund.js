@@ -14,6 +14,8 @@ export async function refundRazorpayPayment({ keyId, keySecret, paymentId, amoun
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${auth}` },
       body: JSON.stringify({ amount, speed: 'normal', notes: { reason: String(reason || 'Order could not be fulfilled').slice(0, 200) } }),
+      // every other outbound call here is bounded; a hung gateway must not run the function out of time
+      signal: AbortSignal.timeout(12000),
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) return { ok: true, id: data?.id || null };
